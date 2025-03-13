@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
-import { FileStats } from '../upload/FileUpload';
+import { FileStats } from '@/lib/services/fileProcessingService';
+import Link from 'next/link';
 
 interface FilePreviewProps {
   fileStats: FileStats;
+  datasetId: string;
 }
 
-export const FilePreview: React.FC<FilePreviewProps> = ({ fileStats }) => {
+export const FilePreview: React.FC<FilePreviewProps> = ({ fileStats, datasetId }) => {
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     
@@ -54,15 +56,12 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ fileStats }) => {
       </div>
       
       <div className="mt-6 flex justify-end">
-        <button 
+        <Link 
+          href={`/datasets/${datasetId}`}
           className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-          onClick={() => {
-            // This will be implemented later to proceed to the metadata generation step
-            console.log('Proceed to metadata generation');
-          }}
         >
-          Continue to Metadata
-        </button>
+          View Dataset Details
+        </Link>
       </div>
     </div>
   );

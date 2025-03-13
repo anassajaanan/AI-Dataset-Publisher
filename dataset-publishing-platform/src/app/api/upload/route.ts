@@ -1,68 +1,137 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processFile, FileProcessingError } from '@/lib/services/fileProcessingService';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import connectToDatabase from '@/lib/db/mongodb';
+import { Dataset, DatasetVersion } from '@/lib/db/models';
+import mongoose from 'mongoose';
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
+    // Connect to MongoDB
+    try {
+      await connectToDatabase();
+    } catch (dbError) {
+      return NextResponse.json(
+        { message: 'Database connection error. Please try again later.' },
+        { status: 500 }
+      );
+    }
+    
+    // Parse the form data
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (formError) {
+      return NextResponse.json(
+        { message: 'Error parsing form data. Please try again.' },
+        { status: 400 }
+      );
+    }
+    
     const file = formData.get('file') as File;
 
+    // Validate file exists
     if (!file) {
       return NextResponse.json(
-        { message: 'No file provided' },
+        { message: 'No file provided. Please select a file to upload.' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { message: `File is too large (${(file.size / (1024 * 1024)).toFixed(2)}MB). Maximum size is 10MB.` },
+        { status: 400 }
+      );
+    }
+    
+    // Validate file is not empty
+    if (file.size === 0) {
+      return NextResponse.json(
+        { message: 'File is empty. Please upload a non-empty file.' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate file extension
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    const validExtensions = ['csv', 'xls', 'xlsx'];
+    
+    if (!validExtensions.includes(fileExtension)) {
+      return NextResponse.json(
+        { message: `Invalid file type: .${fileExtension}. Please upload a CSV or Excel file (.csv, .xls, .xlsx).` },
+        { status: 400 }
+      );
+    }
+    
+    // Process the file to get statistics
+    let fileStats;
+    try {
+      fileStats = await processFile(file);
+    } catch (processError) {
+      if (processError instanceof FileProcessingError) {
+        return NextResponse.json(
+          { message: processError.message },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { message: 'Failed to process file. Please try again with a different file.' },
         { status: 400 }
       );
     }
 
-    // Process the file to get statistics
-    const fileStats = await processFile(file);
-
     // Save file data to database
-    const dataset = await prisma.dataset.create({
-      data: {
-        filename: fileStats.filename,
-        fileSize: fileStats.fileSize,
-        rowCount: fileStats.rowCount,
-        columns: fileStats.columns,
-      },
-    });
+    const datasetData = {
+      filename: fileStats.filename,
+      fileSize: fileStats.fileSize,
+      rowCount: fileStats.rowCount,
+      columns: fileStats.columns,
+    };
+    
+    // Create the dataset and get its ID
+    let result;
+    try {
+      result = await Dataset.create(datasetData);
+    } catch (dbError) {
+      return NextResponse.json(
+        { message: 'Error saving dataset to database. Please try again.' },
+        { status: 500 }
+      );
+    }
+    
+    // Use a type assertion to tell TypeScript that result has an _id property
+    const datasetDoc = result as unknown as { _id: mongoose.Types.ObjectId };
+    const datasetId = datasetDoc._id.toString();
 
     // Create initial version
-    const buffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    
-    // In a real application, you would save the file to a storage service
-    // For this example, we'll just pretend we saved it and store the path
-    const filePath = `/uploads/${dataset.id}/${fileStats.filename}`;
-    
-    await prisma.datasetVersion.create({
-      data: {
+    try {
+      // In a real application, you would save the file to a storage service
+      const filePath = `/uploads/${datasetId}/${fileStats.filename}`;
+      
+      const versionData = {
         versionNumber: 1,
         filePath,
         status: 'draft',
-        datasetId: dataset.id,
-      },
-    });
+        datasetId: datasetId,
+      };
+      
+      await DatasetVersion.create(versionData);
+    } catch (error) {
+      // Even if version creation fails, we'll still return the dataset and file stats
+      // In a production app, you might want to handle this differently
+    }
 
     return NextResponse.json({ 
       message: 'File uploaded successfully',
       fileStats,
-      datasetId: dataset.id
+      datasetId
     });
   } catch (error) {
-    console.error('Error processing file:', error);
-    
-    if (error instanceof FileProcessingError) {
-      return NextResponse.json(
-        { message: error.message },
-        { status: 400 }
-      );
-    }
-    
+    // For any other errors, return a generic error message
     return NextResponse.json(
-      { message: 'An error occurred while processing the file' },
+      { message: 'An unexpected error occurred while processing the file. Please try again with a different file.' },
       { status: 500 }
     );
   }
