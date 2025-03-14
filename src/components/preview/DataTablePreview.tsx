@@ -2,6 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DataTablePreviewProps {
   datasetId: string;
@@ -47,61 +58,79 @@ const DataTablePreview: React.FC<DataTablePreviewProps> = ({ datasetId, maxRows 
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        <span className="ml-2">Loading preview data...</span>
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-[250px]" />
+          <Skeleton className="h-4 w-[100px]" />
+        </div>
+        <div className="space-y-2">
+          <div className="flex gap-4">
+            {Array(5).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-[120px]" />
+            ))}
+          </div>
+          {Array(5).fill(0).map((_, rowIndex) => (
+            <div key={rowIndex} className="flex gap-4">
+              {Array(5).fill(0).map((_, cellIndex) => (
+                <Skeleton key={cellIndex} className="h-8 w-[120px]" />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-        <strong className="font-bold">Error: </strong>
-        <span className="block sm:inline">{error}</span>
+      <div className="flex items-center gap-2 p-4 text-destructive bg-destructive/10 rounded-md">
+        <AlertCircle className="h-5 w-5" />
+        <div>
+          <p className="font-medium">Error loading preview data</p>
+          <p className="text-sm">{error}</p>
+        </div>
       </div>
     );
   }
 
   if (!previewData || !previewData.headers.length) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative" role="alert">
-        <span className="block sm:inline">No preview data available for this dataset.</span>
+      <div className="flex items-center gap-2 p-4 text-amber-600 bg-amber-50 rounded-md">
+        <Info className="h-5 w-5" />
+        <p>No preview data available for this dataset.</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto mt-4">
-      <div className="text-sm text-gray-500 mb-2">
-        Showing {previewData.rows.length} of {previewData.totalRows} rows
+    <div className="overflow-x-auto">
+      <div className="p-4 text-sm text-muted-foreground">
+        Showing {previewData.rows.length} of {previewData.totalRows.toLocaleString()} rows
       </div>
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
+      <Table>
+        <TableHeader>
+          <TableRow>
             {previewData.headers.map((header, index) => (
-              <th
-                key={index}
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <TableHead key={index}>
                 {header}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {previewData.rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+            <TableRow key={rowIndex} className={cn(
+              rowIndex % 2 === 0 ? "bg-background" : "bg-muted/50"
+            )}>
               {row.map((cell, cellIndex) => (
-                <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <TableCell key={cellIndex}>
                   {cell !== null && cell !== undefined ? String(cell) : ''}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 };

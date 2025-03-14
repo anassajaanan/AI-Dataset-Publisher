@@ -4,6 +4,25 @@ import React, { useState } from 'react';
 import { FileStats } from '@/lib/services/fileProcessingService';
 import Link from 'next/link';
 import DataTablePreview from './DataTablePreview';
+import { 
+  Card, 
+  CardHeader, 
+  CardTitle, 
+  CardContent, 
+  CardFooter 
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { 
+  FileText, 
+  Database, 
+  Table, 
+  ChevronDown, 
+  ChevronUp, 
+  ExternalLink,
+  BarChart2
+} from 'lucide-react';
 
 interface FilePreviewProps {
   fileStats: FileStats;
@@ -23,61 +42,111 @@ const FilePreview: React.FC<FilePreviewProps> = ({ fileStats, datasetId }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Function to determine badge color based on file type
+  const getFileTypeBadge = (filename: string) => {
+    const extension = filename.split('.').pop()?.toLowerCase() || '';
+    
+    switch (extension) {
+      case 'csv':
+        return 'success';
+      case 'xlsx':
+      case 'xls':
+        return 'info';
+      default:
+        return 'secondary';
+    }
+  };
+
   return (
-    <div>
-      <div className="mt-6 p-6 border rounded-lg shadow-sm bg-white">
-        <h2 className="text-xl font-semibold mb-4">File Information</h2>
+    <div className="space-y-6">
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-primary/5 pb-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            <CardTitle>File Information</CardTitle>
+          </div>
+        </CardHeader>
         
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Filename</h3>
-            <p className="mt-1 text-lg">{fileStats.filename}</p>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Filename</h3>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-medium">{fileStats.filename}</p>
+                <Badge variant={getFileTypeBadge(fileStats.filename)}>
+                  {fileStats.filename.split('.').pop()?.toUpperCase()}
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground">File Size</h3>
+              <p className="text-lg font-medium">{formatFileSize(fileStats.fileSize)}</p>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Row Count</h3>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-medium">{fileStats.rowCount.toLocaleString()}</p>
+                <BarChart2 className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
           </div>
           
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">File Size</h3>
-            <p className="mt-1 text-lg">{formatFileSize(fileStats.fileSize)}</p>
-          </div>
+          <Separator className="my-6" />
           
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Row Count</h3>
-            <p className="mt-1 text-lg">{fileStats.rowCount.toLocaleString()}</p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-medium">Columns</h3>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {fileStats.columns.map((column, index) => (
+                <Badge 
+                  key={index} 
+                  variant="outline"
+                  className="bg-primary/5 hover:bg-primary/10 text-foreground border-primary/20"
+                >
+                  {column}
+                </Badge>
+              ))}
+            </div>
           </div>
-        </div>
+        </CardContent>
         
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Columns</h3>
-          <div className="flex flex-wrap gap-2">
-            {fileStats.columns.map((column, index) => (
-              <span 
-                key={index} 
-                className="px-3 py-1 bg-gray-100 rounded-full text-sm"
-              >
-                {column}
-              </span>
-            ))}
-          </div>
-        </div>
-        
-        <div className="mt-6 flex justify-between items-center">
-          <button
+        <CardFooter className="flex justify-between border-t bg-muted/10 p-4">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setShowDataPreview(!showDataPreview)}
-            className="text-primary hover:text-primary/80 transition-colors"
+            className="flex items-center gap-1"
           >
+            <Table className="h-4 w-4 mr-1" />
             {showDataPreview ? 'Hide Data Preview' : 'Show Data Preview'}
-          </button>
+            {showDataPreview ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
           
-          <Link 
-            href={`/datasets/${datasetId}`}
-            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-          >
-            View Dataset Details
-          </Link>
-        </div>
-      </div>
+          <Button asChild variant="default" size="sm">
+            <Link href={`/datasets/${datasetId}`}>
+              <ExternalLink className="h-4 w-4 mr-1" />
+              View Dataset Details
+            </Link>
+          </Button>
+        </CardFooter>
+      </Card>
       
       {showDataPreview && (
-        <DataTablePreview datasetId={datasetId} maxRows={10} />
+        <Card>
+          <CardHeader className="bg-primary/5 pb-4">
+            <div className="flex items-center gap-2">
+              <Table className="h-5 w-5 text-primary" />
+              <CardTitle>Data Preview</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <DataTablePreview datasetId={datasetId} maxRows={10} />
+          </CardContent>
+        </Card>
       )}
     </div>
   );
