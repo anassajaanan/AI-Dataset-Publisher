@@ -49,7 +49,7 @@ async function getDataset(id: string) {
 }
 
 export default async function SubmitPage({ params }: SubmitPageProps) {
-  const { id } = params;
+  const id = params.id;
   const dataset = await getDataset(id);
   
   if (!dataset) {

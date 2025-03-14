@@ -17,7 +17,7 @@ export async function GET(
     // Connect to MongoDB
     await connectToDatabase();
     
-    const { id } = params;
+    const id = params.id;
     
     // Validate id format to prevent CastError
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {

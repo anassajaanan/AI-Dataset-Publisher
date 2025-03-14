@@ -32,7 +32,7 @@ async function getDatasetBasicInfo(id: string) {
 }
 
 export default async function MetadataPage({ params }: MetadataPageProps) {
-  const { id: datasetId } = params;
+  const datasetId = params.id;
   const datasetInfo = await getDatasetBasicInfo(datasetId);
   
   return (
