@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import FileUpload from "@/components/upload/FileUpload";
-import EnhancedMetadataEditor from "@/components/metadata/EnhancedMetadataEditor";
+import { MetadataEditor } from "@/components/metadata/MetadataEditor";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -80,7 +80,7 @@ export default function UploadWorkflow() {
             </CardHeader>
             <CardContent>
               {datasetId && (
-                <EnhancedMetadataEditor 
+                <MetadataEditor 
                   datasetId={datasetId} 
                   onSave={handleMetadataSaved} 
                   onSubmit={handleMetadataSubmitted} 

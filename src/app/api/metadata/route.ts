@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateMetadata, MetadataGenerationError } from '@/lib/services/ai/metadataGenerator';
-import { getFileContent, FileStorageError } from '@/lib/services/storage/fileStorageService';
 import connectToDatabase from '@/lib/db/mongodb';
-import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
+import { generateMetadata, MetadataGenerationError } from '@/lib/services/ai/metadataGenerator';
+import { getFileContent } from '@/lib/services/storage/fileStorageService';
+import Papa from 'papaparse';
 import mongoose from 'mongoose';
-import * as Papa from 'papaparse';
+import { Dataset, DatasetVersion } from '@/lib/db/models';
 
 export async function POST(request: NextRequest) {
   try {
     // Connect to MongoDB
     await connectToDatabase();
     
+    // Parse request body
     const body = await request.json();
     const { datasetId, language = 'en' } = body;
     
+    // Validate datasetId
     if (!datasetId) {
       return NextResponse.json(
         { message: 'Dataset ID is required' },
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
       .sort({ versionNumber: -1 })
       .limit(1);
     
-    if (!latestVersion || !latestVersion.filePath) {
+    if (!latestVersion?.filePath) {
       return NextResponse.json(
         { message: 'Dataset file not found' },
         { status: 404 }
@@ -44,17 +46,19 @@ export async function POST(request: NextRequest) {
     }
     
     // Get file content and sample data
-    let fileContent: string | undefined;
+    let fileContent: string;
     let sampleData: any[] = [];
     
     try {
       // Read the file content
       fileContent = await getFileContent(latestVersion.filePath);
       
-      // Parse the file to get sample data
+      // Determine file type from filename
       const fileExtension = dataset.filename.split('.').pop()?.toLowerCase() || '';
+      const isCSV = fileExtension === 'csv';
       
-      if (fileExtension === 'csv') {
+      // Parse the file to get sample data
+      if (isCSV) {
         // Parse CSV to get sample data
         const parseResult = Papa.parse(fileContent, { 
           header: true, 
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest) {
         sampleData = parseResult.data as any[];
       } else {
         // For non-CSV files, create sample data from columns
-        sampleData = dataset.columns.map(column => {
+        sampleData = dataset.columns.map((column: string) => {
           return { [column]: `Sample ${column} data` };
         });
       }
@@ -73,16 +77,16 @@ export async function POST(request: NextRequest) {
       console.error('Error reading file:', error);
       
       // If we can't read the file, create mock sample data
-      sampleData = dataset.columns.map(column => {
+      sampleData = dataset.columns.map((column: string) => {
         return { [column]: `Sample ${column} data` };
       });
       
-      // Continue without file content
-      fileContent = undefined;
+      // Use an empty string for file content
+      fileContent = '';
     }
     
     // Generate metadata
-    const metadata = await generateMetadata(
+    const metadataResponse = await generateMetadata(
       {
         filename: dataset.filename,
         rowCount: dataset.rowCount,
@@ -90,26 +94,13 @@ export async function POST(request: NextRequest) {
         fileSize: dataset.fileSize
       },
       sampleData,
-      language as 'en' | 'ar' | 'both',
-      fileContent // Pass the file content to the metadata generator
+      fileContent,
+      language as 'en' | 'ar' | 'both'
     );
-    
-    // Save metadata to database
-    const savedMetadata = await DatasetMetadata.create({
-      title: metadata.title,
-      titleArabic: metadata.titleArabic,
-      description: metadata.description,
-      descriptionArabic: metadata.descriptionArabic,
-      keywords: metadata.tags, // Note: MongoDB model uses keywords instead of tags
-      license: 'CC BY 4.0', // Default license
-      author: 'System Generated', // Default author
-      datasetId: dataset._id,
-      versionId: latestVersion?._id
-    });
     
     return NextResponse.json({
       message: 'Metadata generated successfully',
-      metadata: savedMetadata
+      metadata: metadataResponse.options
     });
   } catch (error) {
     console.error('Error generating metadata:', error);

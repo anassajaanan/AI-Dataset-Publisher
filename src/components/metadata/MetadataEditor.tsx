@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { GeneratedMetadata } from '@/lib/services/ai/metadataGenerator';
+import { GeneratedMetadata, MetadataOptionType } from '@/lib/services/ai/metadataGenerator';
 
 interface MetadataEditorProps {
   datasetId: string;
@@ -23,6 +23,10 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
     tags: [],
     category: ''
   });
+  
+  // Add state for metadata options
+  const [metadataOptions, setMetadataOptions] = useState<MetadataOptionType[]>([]);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
   
   const [loading, setLoading] = useState<boolean>(false);
   const [generating, setGenerating] = useState<boolean>(false);
@@ -58,6 +62,8 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
   const generateMetadata = async () => {
     setGenerating(true);
     setError(null);
+    setMetadataOptions([]);
+    setSelectedOptionIndex(null);
     
     try {
       const response = await axios.post('/api/metadata', {
@@ -65,8 +71,8 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
         language
       });
       
-      if (response.data.metadata) {
-        setMetadata(response.data.metadata);
+      if (response.data.metadata && Array.isArray(response.data.metadata)) {
+        setMetadataOptions(response.data.metadata);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       }
@@ -79,6 +85,23 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
       }
     } finally {
       setGenerating(false);
+    }
+  };
+  
+  const selectOption = (index: number) => {
+    if (index >= 0 && index < metadataOptions.length) {
+      const option = metadataOptions[index];
+      setSelectedOptionIndex(index);
+      
+      // Convert the selected option to the GeneratedMetadata format
+      setMetadata({
+        title: option.title,
+        titleArabic: language === 'ar' || language === 'both' ? option.title : '',
+        description: option.description,
+        descriptionArabic: language === 'ar' || language === 'both' ? option.description : '',
+        tags: option.tags,
+        category: option.category
+      });
     }
   };
   
@@ -168,6 +191,42 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
       {saveSuccess && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md" role="alert">
           <p className="text-green-600">Metadata saved successfully!</p>
+        </div>
+      )}
+      
+      {/* Display metadata options if available */}
+      {metadataOptions.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-medium mb-3">Select a Metadata Option</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {metadataOptions.map((option, index) => (
+              <div 
+                key={index}
+                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                  selectedOptionIndex === index 
+                    ? 'border-primary bg-primary/5' 
+                    : 'hover:bg-gray-50'
+                }`}
+                onClick={() => selectOption(index)}
+              >
+                <h4 className="font-medium mb-2">{option.title}</h4>
+                <p className="text-sm text-gray-600 mb-2 line-clamp-3">{option.description}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {option.tags.slice(0, 3).map((tag, tagIndex) => (
+                    <span key={tagIndex} className="px-2 py-1 bg-gray-100 rounded-full text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                  {option.tags.length > 3 && (
+                    <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">
+                      +{option.tags.length - 3} more
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">Category: {option.category}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       

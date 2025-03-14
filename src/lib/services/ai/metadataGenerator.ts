@@ -1,151 +1,134 @@
-import axios from 'axios';
+import { z } from "zod";
+import { zodResponseFormat } from "openai/helpers/zod";
+import OpenAI from "openai";
 import { FileStats } from '@/lib/services/fileProcessingService';
 
-export type GeneratedMetadata = {
+// Initialize the OpenAI client with your API key
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Define the schema for one metadata option
+const MetadataOption = z.object({
+  title: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  category: z.string(),
+});
+
+// Define the schema for the full response with exactly three options
+const MetadataResponseSchema = z.object({
+  options: z.array(MetadataOption).length(3),
+});
+
+// Export TypeScript types for later use if needed
+export type MetadataOptionType = z.infer<typeof MetadataOption>;
+export type MetadataResponseType = z.infer<typeof MetadataResponseSchema>;
+
+// Define the type for a single metadata option that has been selected for editing
+export interface GeneratedMetadata {
   title: string;
   titleArabic?: string;
   description: string;
   descriptionArabic?: string;
   tags: string[];
   category: string;
-};
-
-export class MetadataGenerationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'MetadataGenerationError';
-  }
 }
 
-export async function generateMetadata(
-  fileStats: FileStats,
+// Custom error to be thrown when metadata generation fails
+export class MetadataGenerationError extends Error {}
+
+/**
+ * Generates metadata for a dataset using the file content and basic file info.
+ *
+ * @param fileInfo - Basic file information including filename, row count, columns, and file size
+ * @param sampleData - The sample data extracted from the file (not used directly in prompt)
+ * @param fileContent - The content of the file as a string
+ * @param language - The language option: 'en', 'ar', or 'both'
+ * @returns A promise that resolves to three metadata options
+ */
+export const generateMetadata = async (
+  fileInfo: { filename: string; rowCount: number; columns: string[]; fileSize: number },
   sampleData: any[],
-  language: 'en' | 'ar' | 'both' = 'en',
-  fileContent?: string // Optional file content for better analysis
-): Promise<GeneratedMetadata> {
+  fileContent: string,
+  language: 'en' | 'ar' | 'both'
+): Promise<MetadataResponseType> => {
+  // Prepare a brief preview of the file content (first 1000 characters)
+  const fileContentPreview = fileContent.slice(0, 1000);
+  
+  // Prepare a summary of basic file info
+  const fileBasicInfo = `Filename: ${fileInfo.filename}, Row Count: ${fileInfo.rowCount}, Columns: ${fileInfo.columns.join(", ")}, File Size: ${fileInfo.fileSize} bytes`;
+
+  // Build the prompt including instructions and context.
+  const userPrompt = `
+You are an expert at generating metadata for datasets. Given the file content and basic file information provided below, please produce 3 distinct metadata options.
+Each option must include:
+- a title,
+- a description,
+- a list of tags,
+- a category suggestion.
+
+Respond with a JSON object that exactly matches the following schema:
+
+{
+  "options": [
+    {
+      "title": "string",
+      "description": "string",
+      "tags": ["string"],
+      "category": "string"
+    },
+    {
+      "title": "string",
+      "description": "string",
+      "tags": ["string"],
+      "category": "string"
+    },
+    {
+      "title": "string",
+      "description": "string",
+      "tags": ["string"],
+      "category": "string"
+    }
+  ]
+}
+
+File Basic Information: ${fileBasicInfo}
+File Content Preview: ${fileContentPreview}
+Language: ${language}
+  `;
+
   try {
-    // In a real application, this would call an AI API like OpenAI
-    // For this example, we'll simulate the AI response
-    
-    // Normally, you would do something like:
-    // const prompt = `Generate metadata for a dataset with the following properties:
-    //   Filename: ${fileStats.filename}
-    //   Columns: ${fileStats.columns.join(', ')}
-    //   Sample data: ${JSON.stringify(sampleData.slice(0, 5))}
-    //   ${fileContent ? `File content preview: ${fileContent.slice(0, 1000)}...` : ''}
-    //   Generate in language: ${language}`;
-    //
-    // const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-    //   model: 'gpt-4',
-    //   messages: [
-    //     { role: 'system', content: 'You are a helpful assistant that generates metadata for datasets.' },
-    //     { role: 'user', content: prompt }
-    //   ]
-    // }, {
-    //   headers: {
-    //     'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // });
-    
-    // For this example, we'll simulate the AI response
-    const simulateAIResponse = (): GeneratedMetadata => {
-      const filename = fileStats.filename.replace(/\.\w+$/, '');
-      const columnNames = fileStats.columns.join(', ');
-      
-      // Use file content to enhance description if available
-      let enhancedDescription = `This dataset contains information about ${filename.toLowerCase()} with the following columns: ${columnNames}. It has ${fileStats.rowCount} records.`;
-      
-      if (fileContent && fileContent.length > 0) {
-        // In a real AI implementation, the model would analyze the content
-        // Here we'll just add a note that we have the content
-        enhancedDescription += ` The data appears to be ${guessDataType(fileStats.columns, sampleData)} based on the column structure and content.`;
-      }
-      
-      // Basic metadata in English
-      const metadata: GeneratedMetadata = {
-        title: `${filename} Dataset`,
-        description: enhancedDescription,
-        tags: [...fileStats.columns.slice(0, 5), filename.toLowerCase()],
-        category: guessCategory(fileStats.columns, sampleData)
-      };
-      
-      // Add Arabic translations if requested
-      if (language === 'ar' || language === 'both') {
-        metadata.titleArabic = `مجموعة بيانات ${filename}`;
-        metadata.descriptionArabic = `تحتوي مجموعة البيانات هذه على معلومات حول ${filename.toLowerCase()} مع الأعمدة التالية: ${columnNames}. تحتوي على ${fileStats.rowCount} سجل.`;
-        
-        if (fileContent && fileContent.length > 0) {
-          metadata.descriptionArabic += ` يبدو أن البيانات هي ${guessDataTypeArabic(fileStats.columns, sampleData)} بناءً على هيكل العمود والمحتوى.`;
-        }
-      }
-      
-      return metadata;
-    };
-    
-    // Simulate a delay to mimic API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return simulateAIResponse();
+    // Call the OpenAI API using the create method
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-2024-08-06",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert metadata generator for datasets.",
+        },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    // Extract and validate the response
+    const content = completion.choices[0].message.content;
+    if (!content) {
+      throw new MetadataGenerationError("No content received from OpenAI");
+    }
+
+    let parsedContent;
+    try {
+      parsedContent = JSON.parse(content);
+      const validatedResponse = MetadataResponseSchema.parse(parsedContent);
+      return validatedResponse;
+    } catch (error) {
+      console.error("Error parsing OpenAI response:", error);
+      throw new MetadataGenerationError("Failed to parse metadata from AI response");
+    }
   } catch (error) {
-    console.error('Error generating metadata:', error);
-    throw new MetadataGenerationError('Failed to generate metadata. Please try again.');
+    console.error("Error generating metadata:", error);
+    throw new MetadataGenerationError("Metadata generation failed.");
   }
-}
-
-// Helper function to guess a category based on column names and sample data
-function guessCategory(columns: string[], sampleData: any[]): string {
-  const columnStr = columns.join(' ').toLowerCase();
-  
-  if (columnStr.includes('price') || columnStr.includes('cost') || columnStr.includes('revenue')) {
-    return 'Finance';
-  } else if (columnStr.includes('name') || columnStr.includes('email') || columnStr.includes('phone')) {
-    return 'People';
-  } else if (columnStr.includes('date') || columnStr.includes('time') || columnStr.includes('year')) {
-    return 'Time Series';
-  } else if (columnStr.includes('country') || columnStr.includes('city') || columnStr.includes('location')) {
-    return 'Geography';
-  } else if (columnStr.includes('product') || columnStr.includes('item') || columnStr.includes('inventory')) {
-    return 'Products';
-  } else {
-    return 'General';
-  }
-}
-
-// Helper function to guess the type of data based on columns and sample data
-function guessDataType(columns: string[], sampleData: any[]): string {
-  const columnStr = columns.join(' ').toLowerCase();
-  
-  if (columnStr.includes('survey') || columnStr.includes('response') || columnStr.includes('feedback')) {
-    return 'survey data';
-  } else if (columnStr.includes('sales') || columnStr.includes('revenue') || columnStr.includes('profit')) {
-    return 'financial data';
-  } else if (columnStr.includes('student') || columnStr.includes('school') || columnStr.includes('education')) {
-    return 'educational data';
-  } else if (columnStr.includes('patient') || columnStr.includes('health') || columnStr.includes('medical')) {
-    return 'healthcare data';
-  } else if (columnStr.includes('customer') || columnStr.includes('client') || columnStr.includes('purchase')) {
-    return 'customer data';
-  } else {
-    return 'structured data';
-  }
-}
-
-// Helper function for Arabic data type descriptions
-function guessDataTypeArabic(columns: string[], sampleData: any[]): string {
-  const columnStr = columns.join(' ').toLowerCase();
-  
-  if (columnStr.includes('survey') || columnStr.includes('response') || columnStr.includes('feedback')) {
-    return 'بيانات استطلاعية';
-  } else if (columnStr.includes('sales') || columnStr.includes('revenue') || columnStr.includes('profit')) {
-    return 'بيانات مالية';
-  } else if (columnStr.includes('student') || columnStr.includes('school') || columnStr.includes('education')) {
-    return 'بيانات تعليمية';
-  } else if (columnStr.includes('patient') || columnStr.includes('health') || columnStr.includes('medical')) {
-    return 'بيانات صحية';
-  } else if (columnStr.includes('customer') || columnStr.includes('client') || columnStr.includes('purchase')) {
-    return 'بيانات العملاء';
-  } else {
-    return 'بيانات منظمة';
-  }
-} 
+}; 
