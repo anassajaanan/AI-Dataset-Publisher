@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { FileText, Search, Upload, Filter, Calendar, Database } from "lucide-react";
 import connectToDatabase from "@/lib/db/mongodb";
 import { Dataset, DatasetVersion } from "@/lib/db/models";
+import mongoose from "mongoose";
 
 export const metadata: Metadata = {
   title: "Datasets - Dataset Publishing Platform",

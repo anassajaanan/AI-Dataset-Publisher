@@ -31,15 +31,21 @@ export const metadata = {
 };
 
 interface DatasetPageProps {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
+  };
 }
 
 async function getDataset(id: string) {
   try {
     // Connect to MongoDB
     await connectToDatabase();
+    
+    // Validate id format to prevent CastError
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      console.error(`Invalid ObjectId: ${id}`);
+      return null;
+    }
     
     // Get dataset with its latest version and metadata
     const dataset = await Dataset.findById(id);
@@ -48,20 +54,23 @@ async function getDataset(id: string) {
       return null;
     }
     
-    // Get the latest version
+    // Get latest version
     const versions = await DatasetVersion.find({ datasetId: dataset._id })
       .sort({ versionNumber: -1 })
-      .limit(1);
+      .limit(1)
+      .lean();
     
-    // Get the latest metadata
-    const metadata = await DatasetMetadata.find({ datasetId: dataset._id })
-      .sort({ updatedAt: -1 })
-      .limit(1);
+    // Get metadata if available
+    let metadata = null;
+    if (versions.length > 0) {
+      metadata = await DatasetMetadata.findOne({ versionId: versions[0]._id }).lean();
+    }
     
+    // Return dataset with versions and metadata
     return {
       ...dataset.toObject(),
-      versions: versions,
-      metadata: metadata
+      versions,
+      metadata
     };
   } catch (error) {
     console.error('Error fetching dataset:', error);
@@ -70,7 +79,12 @@ async function getDataset(id: string) {
 }
 
 export default async function DatasetPage({ params }: DatasetPageProps) {
-  const { id } = await params;
+  const { id } = params;
+  
+  if (!id) {
+    notFound();
+  }
+  
   const dataset = await getDataset(id);
   
   if (!dataset) {
@@ -78,7 +92,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
   }
   
   const latestVersion = dataset.versions[0];
-  const metadata = dataset.metadata[0];
+  const metadata = dataset.metadata;
   
   const formatDate = (dateString: Date) => {
     return new Date(dateString).toLocaleDateString('en-US', {
