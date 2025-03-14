@@ -22,7 +22,8 @@ import {
   Send
 } from 'lucide-react';
 import connectToDatabase from '@/lib/db/mongodb';
-import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
+import { Dataset, DatasetVersion, DatasetMetadata, IDatasetVersion } from '@/lib/db/models';
+import mongoose from 'mongoose';
 
 export const metadata = {
   title: 'Dataset Details - Dataset Publishing Platform',
@@ -298,7 +299,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
               </thead>
               <tbody>
                 {dataset.versions.map((version) => (
-                  <tr key={version._id.toString()} className="border-b">
+                  <tr key={version._id ? version._id.toString() : `version-${version.versionNumber}`} className="border-b">
                     <td className="py-3 px-4">{version.versionNumber}</td>
                     <td className="py-3 px-4">{formatDate(version.createdAt)}</td>
                     <td className="py-3 px-4">
