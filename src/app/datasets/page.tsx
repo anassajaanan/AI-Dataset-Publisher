@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { FileText, Search, Upload, Filter, Calendar, Database } from "lucide-react";
+import connectToDatabase from "@/lib/db/mongodb";
+import { Dataset, DatasetVersion } from "@/lib/db/models";
 
 export const metadata: Metadata = {
   title: "Datasets - Dataset Publishing Platform",
@@ -15,16 +17,43 @@ export const metadata: Metadata = {
 
 async function getDatasets() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/datasets`, {
-      cache: 'no-store',
+    // Connect to MongoDB
+    await connectToDatabase();
+    
+    // Fetch datasets
+    const datasets = await Dataset.find()
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    // Get all dataset IDs
+    const datasetIds = datasets.map(dataset => dataset._id);
+    
+    // Fetch latest versions for each dataset
+    const versions = await DatasetVersion.find({
+      datasetId: { $in: datasetIds },
+    }).sort({ versionNumber: -1 }).lean();
+    
+    // Create a map of datasetId to its latest version
+    const latestVersionMap = new Map();
+    versions.forEach(version => {
+      const datasetId = version.datasetId.toString();
+      if (!latestVersionMap.has(datasetId)) {
+        latestVersionMap.set(datasetId, version);
+      }
     });
     
-    if (!res.ok) {
-      throw new Error('Failed to fetch datasets');
-    }
+    // Add versions to datasets
+    const datasetsWithVersions = datasets.map(dataset => {
+      const datasetId = dataset._id.toString();
+      const latestVersion = latestVersionMap.get(datasetId);
+      return {
+        ...dataset,
+        _id: datasetId, // Convert ObjectId to string
+        versions: latestVersion ? [latestVersion] : []
+      };
+    });
     
-    const data = await res.json();
-    return data.datasets || [];
+    return datasetsWithVersions;
   } catch (error) {
     console.error('Error fetching datasets:', error);
     return [];
@@ -156,33 +185,150 @@ export default async function DatasetsPage() {
         </TabsContent>
         
         <TabsContent value="draft" className="mt-0">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">
-                Showing datasets with draft status
-              </p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {datasets
+              .filter((dataset: any) => {
+                const latestVersion = dataset.versions && dataset.versions.length > 0 
+                  ? dataset.versions[0] 
+                  : { status: 'draft' };
+                return latestVersion.status === 'draft';
+              })
+              .map((dataset: any) => {
+                const latestVersion = dataset.versions && dataset.versions.length > 0 
+                  ? dataset.versions[0] 
+                  : { status: 'draft', versionNumber: 1 };
+                
+                return (
+                  <Card key={dataset._id} className="transition-all hover:shadow-md">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-lg">{dataset.filename}</CardTitle>
+                        </div>
+                        <Badge className={getStatusColor(latestVersion.status)}>
+                          {latestVersion.status.charAt(0).toUpperCase() + latestVersion.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <CardDescription className="pt-1">
+                        {dataset.rowCount.toLocaleString()} rows • {dataset.columns.length} columns
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Calendar className="mr-1 h-4 w-4" />
+                        Uploaded on {formatDate(dataset.createdAt)}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button asChild variant="outline" className="w-full">
+                        <Link href={`/datasets/${dataset._id}`}>
+                          View Details
+                        </Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+          </div>
         </TabsContent>
         
         <TabsContent value="submitted" className="mt-0">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">
-                Showing datasets with submitted status
-              </p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {datasets
+              .filter((dataset: any) => {
+                const latestVersion = dataset.versions && dataset.versions.length > 0 
+                  ? dataset.versions[0] 
+                  : { status: 'draft' };
+                return latestVersion.status === 'submitted';
+              })
+              .map((dataset: any) => {
+                const latestVersion = dataset.versions && dataset.versions.length > 0 
+                  ? dataset.versions[0] 
+                  : { status: 'submitted', versionNumber: 1 };
+                
+                return (
+                  <Card key={dataset._id} className="transition-all hover:shadow-md">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-lg">{dataset.filename}</CardTitle>
+                        </div>
+                        <Badge className={getStatusColor(latestVersion.status)}>
+                          {latestVersion.status.charAt(0).toUpperCase() + latestVersion.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <CardDescription className="pt-1">
+                        {dataset.rowCount.toLocaleString()} rows • {dataset.columns.length} columns
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Calendar className="mr-1 h-4 w-4" />
+                        Uploaded on {formatDate(dataset.createdAt)}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button asChild variant="outline" className="w-full">
+                        <Link href={`/datasets/${dataset._id}`}>
+                          View Details
+                        </Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+          </div>
         </TabsContent>
         
         <TabsContent value="published" className="mt-0">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">
-                Showing datasets with published status
-              </p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {datasets
+              .filter((dataset: any) => {
+                const latestVersion = dataset.versions && dataset.versions.length > 0 
+                  ? dataset.versions[0] 
+                  : { status: 'draft' };
+                return latestVersion.status === 'published';
+              })
+              .map((dataset: any) => {
+                const latestVersion = dataset.versions && dataset.versions.length > 0 
+                  ? dataset.versions[0] 
+                  : { status: 'published', versionNumber: 1 };
+                
+                return (
+                  <Card key={dataset._id} className="transition-all hover:shadow-md">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-lg">{dataset.filename}</CardTitle>
+                        </div>
+                        <Badge className={getStatusColor(latestVersion.status)}>
+                          {latestVersion.status.charAt(0).toUpperCase() + latestVersion.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <CardDescription className="pt-1">
+                        {dataset.rowCount.toLocaleString()} rows • {dataset.columns.length} columns
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Calendar className="mr-1 h-4 w-4" />
+                        Uploaded on {formatDate(dataset.createdAt)}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button asChild variant="outline" className="w-full">
+                        <Link href={`/datasets/${dataset._id}`}>
+                          View Details
+                        </Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

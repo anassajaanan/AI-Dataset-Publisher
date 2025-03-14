@@ -111,8 +111,9 @@ export default function FileUpload() {
   };
 
   const handleViewDataset = () => {
-    // Redirect to the datasets page instead of a specific dataset
-    router.push('/datasets');
+    if (datasetId) {
+      router.push(`/datasets/${datasetId}`);
+    }
   };
 
   const resetUpload = () => {
@@ -249,7 +250,7 @@ export default function FileUpload() {
           
           <div className="mt-4 space-y-4">
             <p className="text-sm">
-              You can now view your dataset in the datasets list and proceed with the metadata review process.
+              You can now view your dataset details and proceed with the metadata review process.
             </p>
             
             <div className="flex justify-end gap-3">
@@ -257,7 +258,7 @@ export default function FileUpload() {
                 Close
               </Button>
               <Button onClick={handleViewDataset}>
-                View Datasets <ArrowRight className="ml-2 h-4 w-4" />
+                View Dataset Details <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
