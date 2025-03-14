@@ -8,7 +8,8 @@ import {
   CardHeader, 
   CardTitle, 
   CardContent, 
-  CardFooter 
+  CardFooter,
+  CardDescription 
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,8 +23,13 @@ import {
   BarChart2,
   Pencil,
   Send,
-  Globe
+  Globe,
+  Info,
+  AlertCircle,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface DatasetPageProps {
   params: {
@@ -68,9 +74,10 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   
   if (loading) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="container mx-auto py-12 px-4">
+        <div className="flex flex-col justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+          <p className="text-muted-foreground">Loading dataset information...</p>
         </div>
       </div>
     );
@@ -78,10 +85,13 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   
   if (error || !dataset) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-4">Error Loading Dataset</h1>
-          <p className="text-muted-foreground mb-6">{error || 'Dataset not found'}</p>
+      <div className="container mx-auto py-12 px-4">
+        <div className="max-w-3xl mx-auto">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error || 'Dataset not found'}</AlertDescription>
+          </Alert>
           <Button asChild>
             <Link href="/dashboard">Return to Dashboard</Link>
           </Button>
@@ -129,255 +139,327 @@ export default function DatasetPage({ params }: DatasetPageProps) {
     }
   };
   
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'draft': return <Pencil className="h-4 w-4" />;
+      case 'submitted': return <Clock className="h-4 w-4" />;
+      case 'approved': return <CheckCircle2 className="h-4 w-4" />;
+      case 'rejected': return <AlertCircle className="h-4 w-4" />;
+      default: return <Info className="h-4 w-4" />;
+    }
+  };
+  
+  // Group columns into chunks for better display
+  const columnChunks = [];
+  const chunkSize = 5;
+  for (let i = 0; i < dataset.columns.length; i += chunkSize) {
+    columnChunks.push(dataset.columns.slice(i, i + chunkSize));
+  }
+  
   return (
-    <div className="container mx-auto py-8 px-4 space-y-6">
-      <div className="flex items-center mb-2">
-        <Button variant="ghost" size="sm" asChild className="gap-1 pl-0 hover:pl-1 transition-all">
-          <Link href="/dashboard">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
-      </div>
-      
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{dataset.filename}</h1>
-          <div className="flex items-center gap-2">
-            <Badge variant={getStatusVariant(latestVersion.status)}>
-              {getStatusLabel(latestVersion.status)}
-            </Badge>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <span>Version {latestVersion.versionNumber}</span>
-              <span className="mx-2">•</span>
-              <Calendar className="h-3.5 w-3.5 mr-1" />
-              <span>{formatDate(dataset.createdAt)}</span>
+    <div className="container mx-auto py-10 px-4">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex items-center mb-2">
+          <Button variant="ghost" size="sm" asChild className="gap-1 pl-0 hover:pl-1 transition-all">
+            <Link href="/dashboard">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Link>
+          </Button>
+        </div>
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">{dataset.filename}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant={getStatusVariant(latestVersion.status)} className="flex items-center gap-1">
+                {getStatusIcon(latestVersion.status)}
+                {getStatusLabel(latestVersion.status)}
+              </Badge>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <span>Version {latestVersion.versionNumber}</span>
+                <span className="mx-2">•</span>
+                <Calendar className="h-3.5 w-3.5 mr-1" />
+                <span>{formatDate(dataset.createdAt)}</span>
+              </div>
             </div>
+          </div>
+          
+          <div className="flex gap-2 self-end md:self-auto">
+            {!metadata ? (
+              <Button asChild className="shadow-sm">
+                <Link href={`/datasets/${dataset._id}/metadata`}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Add Metadata
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" asChild>
+                <Link href={`/datasets/${dataset._id}/metadata`}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Metadata
+                </Link>
+              </Button>
+            )}
+            
+            {latestVersion.status === 'draft' && (
+              <Button asChild className={!metadata ? "opacity-50 cursor-not-allowed" : "shadow-sm"} disabled={!metadata}>
+                <Link href={metadata ? `/datasets/${dataset._id}/submit` : "#"}>
+                  <Send className="h-4 w-4 mr-2" />
+                  Submit for Review
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
         
-        <div className="flex gap-2 self-end md:self-auto">
-          <Button variant="outline" asChild>
-            <Link href={`/datasets/${dataset._id}/metadata`}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Metadata
-            </Link>
-          </Button>
-          
-          {latestVersion.status === 'draft' && (
-            <Button asChild>
-              <Link href={`/datasets/${dataset._id}/submit`}>
-                <Send className="h-4 w-4 mr-2" />
-                Submit for Review
-              </Link>
-            </Button>
-          )}
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <CardTitle>File Information</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Filename</p>
-              <p className="font-medium">{dataset.filename}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Size</p>
-              <p className="font-medium">{formatFileSize(dataset.fileSize)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Rows</p>
-              <div className="flex items-center gap-2">
-                <p className="font-medium">{dataset.rowCount.toLocaleString()}</p>
-                <BarChart2 className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Columns</p>
-              <p className="font-medium">{dataset.columns.length}</p>
-            </div>
-          </CardContent>
-        </Card>
+        {!metadata && (
+          <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+            <Info className="h-4 w-4 text-amber-800" />
+            <AlertTitle>Metadata Required</AlertTitle>
+            <AlertDescription>
+              Please add metadata to your dataset before submitting it for review. Metadata helps users discover and understand your dataset.
+            </AlertDescription>
+          </Alert>
+        )}
         
-        <Card className="md:col-span-2">
-          <CardHeader className="pb-3">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <Card className="md:col-span-4">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <CardTitle>File Information</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Filename</p>
+                  <p className="font-medium truncate">{dataset.filename}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Size</p>
+                  <p className="font-medium">{formatFileSize(dataset.fileSize)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Rows</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{dataset.rowCount.toLocaleString()}</p>
+                    <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Columns</p>
+                  <p className="font-medium">{dataset.columns.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="md:col-span-8">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Database className="h-5 w-5 text-primary" />
+                  <CardTitle>Columns</CardTitle>
+                </div>
+                <Badge variant="outline" className="bg-primary/5">
+                  {dataset.columns.length} total
+                </Badge>
+              </div>
+              <CardDescription>
+                The dataset contains the following columns
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {columnChunks.map((chunk, chunkIndex) => (
+                  <div key={chunkIndex} className="space-y-2">
+                    {chunk.map((column: string, index: number) => (
+                      <div 
+                        key={index}
+                        className="px-3 py-2 rounded-md bg-primary/5 text-sm font-medium truncate"
+                        title={column}
+                      >
+                        {column}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {metadata ? (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-primary" />
+                  <CardTitle>Metadata</CardTitle>
+                </div>
+                <div className="flex border rounded-md overflow-hidden">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className={`relative px-4 py-2 rounded-none ${activeTab === 'english' ? 'bg-primary/10 text-primary' : ''}`}
+                    onClick={() => setActiveTab('english')}
+                  >
+                    English
+                  </Button>
+                  
+                  {metadata.titleArabic && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className={`relative px-4 py-2 rounded-none ${activeTab === 'arabic' ? 'bg-primary/10 text-primary' : ''}`}
+                      onClick={() => setActiveTab('arabic')}
+                    >
+                      <Globe className="h-4 w-4 mr-2" />
+                      Arabic
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              {/* English Metadata */}
+              {activeTab === 'english' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Title</h3>
+                      <p className="text-lg font-medium">{metadata.title}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
+                      <Badge variant="secondary" className="text-sm font-normal">
+                        {metadata.category}
+                      </Badge>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {metadata.tags && metadata.tags.map((tag: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-primary/5">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+                    <p className="text-foreground whitespace-pre-line">{metadata.description}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Arabic Metadata */}
+              {activeTab === 'arabic' && metadata.titleArabic && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir="rtl">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">العنوان</h3>
+                      <p className="text-lg font-medium">{metadata.titleArabic}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">الفئة</h3>
+                      <Badge variant="secondary" className="text-sm font-normal">
+                        {metadata.category}
+                      </Badge>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">الكلمات المفتاحية</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {metadata.tags && metadata.tags.map((tag: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-primary/5">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">الوصف</h3>
+                    <p className="text-foreground whitespace-pre-line">{metadata.descriptionArabic}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="border-t pt-4 flex justify-end">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/datasets/${dataset._id}/metadata`}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Metadata
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        ) : (
+          <Card className="border-2 border-dashed border-primary/20">
+            <CardContent className="pt-8 pb-8 flex flex-col items-center justify-center text-center">
+              <Tag className="h-12 w-12 text-primary/60 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Metadata Available</h3>
+              <p className="text-muted-foreground mb-6 max-w-md">
+                Metadata helps users discover and understand your dataset. Add metadata to improve visibility and usability.
+              </p>
+              <Button asChild size="lg" className="shadow-sm">
+                <Link href={`/datasets/${dataset._id}/metadata`}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Add Metadata
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-primary" />
-              <CardTitle>Columns</CardTitle>
+              <Calendar className="h-5 w-5 text-primary" />
+              <CardTitle>Version History</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {dataset.columns.map((column: string, index: number) => (
-                <Badge 
-                  key={index} 
-                  variant="outline"
-                  className="bg-primary/5 hover:bg-primary/10 text-foreground border-primary/20"
-                >
-                  {column}
-                </Badge>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Comments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dataset.versions.map((version: any) => (
+                    <tr key={version._id ? version._id.toString() : `version-${version.versionNumber}`} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-4">{version.versionNumber}</td>
+                      <td className="py-3 px-4">{formatDate(version.createdAt)}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant={getStatusVariant(version.status)} className="flex items-center gap-1 w-fit">
+                          {getStatusIcon(version.status)}
+                          {getStatusLabel(version.status)}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">{version.comments || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
       </div>
-      
-      {metadata ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Tag className="h-5 w-5 text-primary" />
-              <CardTitle>Metadata</CardTitle>
-            </div>
-            <div className="flex border-b">
-              <Button 
-                variant="ghost" 
-                className={`relative px-4 py-2 font-medium ${activeTab === 'english' ? 'active-tab' : ''}`}
-                onClick={() => setActiveTab('english')}
-              >
-                English
-                {activeTab === 'english' && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></span>
-                )}
-              </Button>
-              
-              {metadata.titleArabic && (
-                <Button 
-                  variant="ghost" 
-                  className={`relative px-4 py-2 font-medium ${activeTab === 'arabic' ? 'active-tab' : ''}`}
-                  onClick={() => setActiveTab('arabic')}
-                >
-                  <Globe className="h-4 w-4 mr-2" />
-                  Arabic
-                  {activeTab === 'arabic' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></span>
-                  )}
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {/* English Metadata */}
-            {activeTab === 'english' && (
-              <div>
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Title</h3>
-                  <p className="text-lg font-medium">{metadata.title}</p>
-                </div>
-                
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-                  <p className="text-foreground">{metadata.description}</p>
-                </div>
-                
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {metadata.tags && metadata.tags.map((tag: string, index: number) => (
-                      <Badge key={index} variant="outline">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
-                  <p className="text-foreground">{metadata.category}</p>
-                </div>
-              </div>
-            )}
-            
-            {/* Arabic Metadata */}
-            {activeTab === 'arabic' && metadata.titleArabic && (
-              <div dir="rtl">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">العنوان</h3>
-                  <p className="text-lg font-medium">{metadata.titleArabic}</p>
-                </div>
-                
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">الوصف</h3>
-                  <p className="text-foreground">{metadata.descriptionArabic}</p>
-                </div>
-                
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">الكلمات المفتاحية</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {metadata.tags && metadata.tags.map((tag: string, index: number) => (
-                      <Badge key={index} variant="outline">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">الفئة</h3>
-                  <p className="text-foreground">{metadata.category}</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="text-center">
-          <CardContent className="pt-6 pb-6">
-            <p className="text-muted-foreground mb-4">No metadata has been added for this dataset yet.</p>
-            <Button asChild>
-              <Link href={`/datasets/${dataset._id}/metadata`}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Add Metadata
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-      
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            <CardTitle>Version History</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Comments</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dataset.versions.map((version: any) => (
-                  <tr key={version._id ? version._id.toString() : `version-${version.versionNumber}`} className="border-b">
-                    <td className="py-3 px-4">{version.versionNumber}</td>
-                    <td className="py-3 px-4">{formatDate(version.createdAt)}</td>
-                    <td className="py-3 px-4">
-                      <Badge variant={getStatusVariant(version.status)}>
-                        {getStatusLabel(version.status)}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">{version.comments || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 } 

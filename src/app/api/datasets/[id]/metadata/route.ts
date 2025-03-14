@@ -2,21 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
 
-type RouteParams = {
+interface RouteContext {
   params: {
     id: string;
   };
-};
+}
 
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  context: RouteContext
 ) {
   try {
     // Connect to MongoDB
     await connectToDatabase();
     
-    const datasetId = params.id;
+    const datasetId = context.params.id;
     
     // Find the latest metadata for this dataset
     const metadata = await DatasetMetadata.findOne({ datasetId })
@@ -41,13 +41,13 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: RouteParams
+  context: RouteContext
 ) {
   try {
     // Connect to MongoDB
     await connectToDatabase();
     
-    const datasetId = params.id;
+    const datasetId = context.params.id;
     const { metadata } = await request.json();
     
     // Validate required fields

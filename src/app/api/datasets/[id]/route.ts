@@ -3,21 +3,21 @@ import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
 import mongoose from 'mongoose';
 
-type RouteParams = {
+interface RouteContext {
   params: {
     id: string;
   };
-};
+}
 
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  context: RouteContext
 ) {
   try {
     // Connect to MongoDB
     await connectToDatabase();
     
-    const id = params.id;
+    const id = context.params.id;
     
     // Validate id format to prevent CastError
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
