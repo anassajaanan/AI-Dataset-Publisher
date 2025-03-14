@@ -9,11 +9,6 @@ import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset } from '@/lib/db/models';
 import mongoose from 'mongoose';
 
-export const metadata = {
-  title: 'Edit Metadata - Dataset Publishing Platform',
-  description: 'Edit and generate metadata for your dataset',
-};
-
 interface MetadataPageProps {
   params: {
     id: string;

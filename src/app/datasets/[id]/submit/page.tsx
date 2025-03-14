@@ -8,10 +8,6 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
-export const metadata = {
-  title: 'Submit for Review - Dataset Publishing Platform',
-  description: 'Submit your dataset for review',
-};
 
 interface SubmitPageProps {
   params: {

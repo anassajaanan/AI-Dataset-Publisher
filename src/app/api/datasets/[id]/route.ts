@@ -3,9 +3,15 @@ import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
 import mongoose from 'mongoose';
 
+type RouteParams = {
+  params: {
+    id: string;
+  };
+};
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
     // Connect to MongoDB

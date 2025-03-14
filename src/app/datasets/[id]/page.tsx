@@ -28,11 +28,6 @@ import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset, DatasetVersion, DatasetMetadata, IDatasetVersion } from '@/lib/db/models';
 import mongoose from 'mongoose';
 
-export const metadata = {
-  title: 'Dataset Details - Dataset Publishing Platform',
-  description: 'View dataset details and metadata',
-};
-
 interface DatasetPageProps {
   params: {
     id: string;
