@@ -126,10 +126,6 @@ export default async function MetadataPage({ params }: MetadataPageProps) {
                 <MetadataEditor 
                   datasetId={datasetId} 
                   isFileUploaded={!!datasetInfo}
-                  onSubmit={() => {
-                    // In a real application, this would redirect to the review page
-                    window.location.href = `/datasets/${datasetId}`;
-                  }}
                 />
               </CardContent>
             </Card>

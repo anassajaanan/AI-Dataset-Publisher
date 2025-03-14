@@ -15,6 +15,7 @@ import { Chat } from '@/components/ui/chat';
 import { ChatItem } from '@/components/ui/chat';
 import { ChatAvatar } from '@/components/ui/chat';
 import { ChatBubble } from '@/components/ui/chat';
+import { useRouter } from 'next/navigation';
 
 interface MetadataEditorProps {
   datasetId: string;
@@ -29,6 +30,8 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
   onSubmit,
   isFileUploaded = true
 }) => {
+  const router = useRouter();
+  
   // State for metadata
   const [metadata, setMetadata] = useState<GeneratedMetadata>({
     title: '',
@@ -172,10 +175,11 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
     }
   };
   
-  const handleSubmit = async () => {
-    await saveDraft();
+  const handleSubmit = () => {
     if (onSubmit) {
       onSubmit();
+    } else {
+      router.push(`/datasets/${datasetId}`);
     }
   };
   
