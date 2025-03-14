@@ -21,7 +21,9 @@ export async function GET(
       );
     }
     
-    const datasetId = params.id;
+    // Await the params object before using its properties
+    const { id } = params;
+    const datasetId = id;
     const searchParams = request.nextUrl.searchParams;
     const maxRows = parseInt(searchParams.get('rows') || '10', 10);
     
