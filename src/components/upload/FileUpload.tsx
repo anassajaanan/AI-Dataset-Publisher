@@ -19,7 +19,11 @@ interface FileStats {
   type: string;
 }
 
-export default function FileUpload() {
+interface FileUploadProps {
+  onFileUploaded?: (datasetId: string) => void;
+}
+
+export default function FileUpload({ onFileUploaded }: FileUploadProps) {
   const [fileStats, setFileStats] = useState<FileStats | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -100,8 +104,16 @@ export default function FileUpload() {
         },
       });
       
-      setDatasetId(response.data.datasetId);
-      setShowSuccessDialog(true);
+      const newDatasetId = response.data.datasetId;
+      setDatasetId(newDatasetId);
+      
+      // If onFileUploaded prop is provided, call it with the datasetId
+      if (onFileUploaded) {
+        onFileUploaded(newDatasetId);
+      } else {
+        // Otherwise, show the success dialog
+        setShowSuccessDialog(true);
+      }
     } catch (error) {
       console.error("Upload error:", error);
       setErrorMessage("Failed to upload file. Please try again.");
@@ -236,34 +248,37 @@ export default function FileUpload() {
         )}
       </Card>
 
-      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              Upload Successful
-            </DialogTitle>
-            <DialogDescription>
-              Your dataset has been uploaded successfully and is ready for review.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4 space-y-4">
-            <p className="text-sm">
-              You can now view your dataset details and proceed with the metadata review process.
-            </p>
+      {/* Only show the success dialog if onFileUploaded is not provided */}
+      {!onFileUploaded && (
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                Upload Successful
+              </DialogTitle>
+              <DialogDescription>
+                Your dataset has been uploaded successfully and is ready for review.
+              </DialogDescription>
+            </DialogHeader>
             
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowSuccessDialog(false)}>
-                Close
-              </Button>
-              <Button onClick={handleViewDataset}>
-                View Dataset Details <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            <div className="mt-4 space-y-4">
+              <p className="text-sm">
+                You can now view your dataset details and proceed with the metadata review process.
+              </p>
+              
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowSuccessDialog(false)}>
+                  Close
+                </Button>
+                <Button onClick={handleViewDataset}>
+                  View Dataset Details <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 } 

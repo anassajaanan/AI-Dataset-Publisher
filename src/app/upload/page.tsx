@@ -1,8 +1,8 @@
-import FileUpload from "@/components/upload/FileUpload";
 import { Metadata } from "next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { FileUp, FileCheck, FileText } from "lucide-react";
+import UploadWorkflow from "@/components/upload/UploadWorkflow";
 
 export const metadata: Metadata = {
   title: "Upload Dataset - Dataset Publishing Platform",
@@ -61,17 +61,7 @@ export default function UploadPage() {
           </Card>
         </div>
 
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle>Upload Dataset</CardTitle>
-            <CardDescription>
-              Drag and drop your file or click to browse. We support CSV and Excel files up to 10MB.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FileUpload />
-          </CardContent>
-        </Card>
+        <UploadWorkflow />
 
         <div className="bg-muted/30 rounded-lg p-6 mt-8">
           <h3 className="text-lg font-medium mb-3">Tips for a successful upload</h3>
