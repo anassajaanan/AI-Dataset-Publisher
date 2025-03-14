@@ -3,205 +3,199 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import OpenAI from "openai";
 import { FileStats } from '@/lib/services/fileProcessingService';
 
-// Initialize the OpenAI client with your API key
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Initialize OpenAI client
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) 
+  : null;
+
+// Define schema for a single metadata option
+const metadataOptionSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  tags: z.array(z.string()).min(1, "At least one tag is required"),
+  category: z.string().min(1, "Category is required"),
+  arabicTitle: z.string().optional(),
+  arabicDescription: z.string().optional(),
 });
 
-// Define the schema for one metadata option
-const MetadataOption = z.object({
-  title: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-  category: z.string(),
-  titleArabic: z.string().optional(),
-  descriptionArabic: z.string().optional(),
-});
+// Define schema for the full response (requiring exactly 3 options)
+const metadataResponseSchema = z.array(metadataOptionSchema).length(3);
 
-// Define the schema for the full response with exactly three options
-const MetadataResponseSchema = z.object({
-  options: z.array(MetadataOption).length(3),
-});
+// Export types for later use
+export type MetadataOptionType = z.infer<typeof metadataOptionSchema>;
+export type MetadataResponseType = z.infer<typeof metadataResponseSchema>;
 
-// Export TypeScript types for later use
-export type MetadataOptionType = z.infer<typeof MetadataOption>;
-export type MetadataResponseType = z.infer<typeof MetadataResponseSchema>;
-
-export class EnhancedMetadataGenerationError extends Error {
+// Error class for metadata generation
+export class MetadataGenerationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'EnhancedMetadataGenerationError';
+    this.name = "MetadataGenerationError";
   }
 }
 
 /**
- * Generates metadata for a dataset using the file content and basic file info
- *
- * @param fileStats - Basic file information including row count, columns, and file size
- * @param sampleData - Sample data from the file for context
- * @param fileContent - The content of the uploaded file as a string
- * @param language - The language for metadata generation ('en', 'ar', or 'both')
- * @returns A promise that resolves to three metadata options
+ * Generate enhanced metadata for a dataset using OpenAI
  */
-export const generateEnhancedMetadata = async (
-  fileStats: FileStats,
-  sampleData: any[],
-  fileContent: string,
-  language: 'en' | 'ar' | 'both' = 'en'
-): Promise<MetadataResponseType> => {
+export async function generateEnhancedMetadata({
+  fileStats,
+  sampleData,
+  fileContent,
+  language = 'en'
+}: {
+  fileStats: {
+    name: string;
+    size: number;
+    rowCount: number;
+    columns: string[];
+  };
+  sampleData?: string[][];
+  fileContent?: string;
+  language?: 'en' | 'ar';
+}): Promise<MetadataResponseType> {
   try {
-    // Prepare a brief preview of the file content (first 1000 characters)
-    const fileContentPreview = fileContent.slice(0, 1000);
-
-    // Prepare a summary of basic file info
-    const fileBasicInfo = `Filename: ${fileStats.filename}, Row Count: ${fileStats.rowCount}, Columns: ${fileStats.columns.join(
-      ", "
-    )}, File Size: ${fileStats.fileSize} bytes`;
-
-    // Prepare sample data summary (first 5 rows)
-    const sampleDataSummary = JSON.stringify(sampleData.slice(0, 5));
-
-    // Build the prompt including instructions and context
-    const userPrompt = `
-You are an expert at generating metadata for datasets. Given the file content and basic file information provided below, please produce 3 distinct metadata options.
-Each option must include:
-- a title,
-- a description,
-- a list of tags (5-10 relevant keywords),
-- a category suggestion.
-
-${language === 'ar' || language === 'both' ? 
-  'Also include Arabic translations for the title and description.' : ''}
-
-Respond with a JSON object that exactly matches the following schema:
-
-{
-  "options": [
-    {
-      "title": "string",
-      "description": "string",
-      "tags": ["string"],
-      "category": "string"${language === 'ar' || language === 'both' ? ',\n      "titleArabic": "string",\n      "descriptionArabic": "string"' : ''}
-    },
-    {
-      "title": "string",
-      "description": "string",
-      "tags": ["string"],
-      "category": "string"${language === 'ar' || language === 'both' ? ',\n      "titleArabic": "string",\n      "descriptionArabic": "string"' : ''}
-    },
-    {
-      "title": "string",
-      "description": "string",
-      "tags": ["string"],
-      "category": "string"${language === 'ar' || language === 'both' ? ',\n      "titleArabic": "string",\n      "descriptionArabic": "string"' : ''}
-    }
-  ]
-}
-
-File Basic Information: ${fileBasicInfo}
-Sample Data: ${sampleDataSummary}
-File Content Preview: ${fileContentPreview}
-`;
-
-    // If OpenAI API key is not available, use the fallback simulation
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn('OpenAI API key not found. Using fallback simulation.');
+    // If OpenAI API key is not available, use the simulation function
+    if (!openai || !process.env.OPENAI_API_KEY) {
+      console.log("OpenAI API key not available, using simulation");
       return simulateAIResponse(fileStats, language);
     }
 
-    // Call the OpenAI API with Structured Outputs using our zod schema
-    const completion = await openai.chat.completions.parse({
-      model: "gpt-4o",
+    // Prepare a preview of the file content
+    const contentPreview = fileContent 
+      ? fileContent.substring(0, 2000) + (fileContent.length > 2000 ? '...' : '')
+      : '';
+
+    // Prepare sample data for the prompt
+    const sampleDataString = sampleData 
+      ? sampleData.slice(0, 5).map(row => row.join(', ')).join('\n')
+      : '';
+
+    // Create a user prompt
+    const userPrompt = `
+      I have a dataset with the following information:
+      - Filename: ${fileStats.name}
+      - Number of rows: ${fileStats.rowCount}
+      - Columns: ${fileStats.columns.join(', ')}
+      - File size: ${Math.round(fileStats.size / 1024)} KB
+
+      ${contentPreview ? `Here's a preview of the file content:\n${contentPreview}` : ''}
+      ${sampleDataString ? `Here's a sample of the data:\n${sampleDataString}` : ''}
+
+      Please generate three distinct metadata options for this dataset. Each option should have a different style or focus.
+      ${language === 'ar' ? 'Please include Arabic translations for the title and description.' : ''}
+    `;
+
+    // Call OpenAI API
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo-0125",
       messages: [
         {
           role: "system",
-          content: "You are an expert metadata generator for datasets.",
+          content: `You are a data scientist specializing in metadata generation for datasets. 
+          Generate three distinct metadata options for the dataset described. 
+          Each option should have a different style or focus (e.g., academic, business, educational).
+          For each option, provide a title, description, relevant tags (at least 3), and a category.
+          ${language === 'ar' ? 'Include Arabic translations for the title and description.' : ''}
+          
+          Format your response as a valid JSON array with exactly 3 objects, each with the following structure:
+          {
+            "title": "Dataset Title",
+            "description": "A detailed description of the dataset",
+            "tags": ["tag1", "tag2", "tag3"],
+            "category": "Category Name",
+            ${language === 'ar' ? '"arabicTitle": "عنوان مجموعة البيانات", "arabicDescription": "وصف تفصيلي لمجموعة البيانات"' : ''}
+          }`
         },
-        { role: "user", content: userPrompt },
+        { role: "user", content: userPrompt }
       ],
-      response_format: zodResponseFormat(MetadataResponseSchema, "metadata_response"),
+      temperature: 0.7,
+      response_format: { type: "json_object" }
     });
 
-    // Return the parsed metadata options
-    const metadataResponse = completion.choices[0].message.parsed;
-    return metadataResponse;
+    // Parse the response
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new MetadataGenerationError("No content received from OpenAI");
+    }
+
+    try {
+      const parsedContent = JSON.parse(content);
+      const options = parsedContent.options || parsedContent;
+      
+      // Validate the response against our schema
+      const validatedOptions = metadataResponseSchema.parse(
+        Array.isArray(options) ? options : [options]
+      );
+      
+      return validatedOptions;
+    } catch (error) {
+      console.error("Error parsing OpenAI response:", error);
+      throw new MetadataGenerationError("Failed to parse metadata from AI response");
+    }
   } catch (error) {
     console.error("Error generating metadata:", error);
-    throw new EnhancedMetadataGenerationError("Metadata generation failed. Please try again.");
+    if (error instanceof MetadataGenerationError) {
+      throw error;
+    }
+    throw new MetadataGenerationError("Failed to generate metadata");
   }
-};
+}
 
 /**
- * Fallback function to simulate AI response when OpenAI API is not available
+ * Simulate AI response for development or when OpenAI API is not available
  */
-function simulateAIResponse(fileStats: FileStats, language: 'en' | 'ar' | 'both'): MetadataResponseType {
-  const filename = fileStats.filename.replace(/\.\w+$/, '');
-  const columnNames = fileStats.columns.join(', ');
+function simulateAIResponse(
+  fileStats: { name: string; size: number; rowCount: number; columns: string[] },
+  language: 'en' | 'ar' = 'en'
+): MetadataResponseType {
+  // Try to guess the category based on column names
+  const columnString = fileStats.columns.join(' ').toLowerCase();
+  let guessedCategory = "General";
   
-  // Create three different metadata options with varying styles
-  const options: MetadataOptionType[] = [
+  if (columnString.includes('patient') || columnString.includes('diagnosis') || columnString.includes('hospital')) {
+    guessedCategory = "Healthcare";
+  } else if (columnString.includes('student') || columnString.includes('school') || columnString.includes('grade')) {
+    guessedCategory = "Education";
+  } else if (columnString.includes('price') || columnString.includes('sales') || columnString.includes('revenue')) {
+    guessedCategory = "Business";
+  } else if (columnString.includes('temperature') || columnString.includes('weather') || columnString.includes('climate')) {
+    guessedCategory = "Climate";
+  } else if (columnString.includes('species') || columnString.includes('habitat') || columnString.includes('animal')) {
+    guessedCategory = "Biology";
+  }
+
+  // Create three distinct metadata options
+  const options: MetadataResponseType = [
     {
-      title: `${filename} Dataset`,
-      description: `This dataset contains information about ${filename.toLowerCase()} with the following columns: ${columnNames}. It has ${fileStats.rowCount} records and provides valuable insights for research and analysis.`,
-      tags: [...fileStats.columns.slice(0, 5), filename.toLowerCase(), 'data', 'research'],
-      category: guessCategory(fileStats.columns, 1),
-      ...(language === 'ar' || language === 'both' ? {
-        titleArabic: `مجموعة بيانات ${filename}`,
-        descriptionArabic: `تحتوي مجموعة البيانات هذه على معلومات حول ${filename.toLowerCase()} مع الأعمدة التالية: ${columnNames}. تحتوي على ${fileStats.rowCount} سجل وتوفر رؤى قيمة للبحث والتحليل.`
+      title: `${fileStats.name.split('.')[0]} Analysis Dataset`,
+      description: `A comprehensive dataset containing ${fileStats.rowCount} records with ${fileStats.columns.length} variables including ${fileStats.columns.slice(0, 3).join(', ')}${fileStats.columns.length > 3 ? ' and more' : ''}. This dataset is suitable for academic research and statistical analysis.`,
+      tags: ["research", "statistics", "analysis", fileStats.name.split('.')[0].toLowerCase()],
+      category: guessedCategory,
+      ...(language === 'ar' ? {
+        arabicTitle: `مجموعة بيانات تحليل ${fileStats.name.split('.')[0]}`,
+        arabicDescription: `مجموعة بيانات شاملة تحتوي على ${fileStats.rowCount} سجل مع ${fileStats.columns.length} متغير بما في ذلك ${fileStats.columns.slice(0, 3).join(', ')}${fileStats.columns.length > 3 ? ' والمزيد' : ''}. هذه المجموعة مناسبة للبحث الأكاديمي والتحليل الإحصائي.`
       } : {})
     },
     {
-      title: `Comprehensive ${filename} Analysis Data`,
-      description: `A detailed dataset focusing on ${filename.toLowerCase()} metrics. This collection includes ${fileStats.rowCount} entries with ${fileStats.columns.length} variables (${columnNames}), suitable for in-depth statistical analysis and visualization.`,
-      tags: [...fileStats.columns.slice(0, 3), 'analysis', 'statistics', 'metrics', filename.toLowerCase(), 'data science'],
-      category: guessCategory(fileStats.columns, 2),
-      ...(language === 'ar' || language === 'both' ? {
-        titleArabic: `بيانات تحليل ${filename} الشاملة`,
-        descriptionArabic: `مجموعة بيانات مفصلة تركز على مقاييس ${filename.toLowerCase()}. تتضمن هذه المجموعة ${fileStats.rowCount} إدخالاً مع ${fileStats.columns.length} متغيرًا (${columnNames})، مناسبة للتحليل الإحصائي المتعمق والتصور.`
+      title: `${guessedCategory} Insights: ${fileStats.name.split('.')[0]}`,
+      description: `This dataset provides valuable insights into ${guessedCategory.toLowerCase()} trends and patterns. With ${fileStats.rowCount} entries and key metrics such as ${fileStats.columns.slice(0, 4).join(', ')}, it's an essential resource for data-driven decision making.`,
+      tags: [guessedCategory.toLowerCase(), "insights", "data-driven", "trends"],
+      category: guessedCategory,
+      ...(language === 'ar' ? {
+        arabicTitle: `رؤى ${guessedCategory}: ${fileStats.name.split('.')[0]}`,
+        arabicDescription: `توفر مجموعة البيانات هذه رؤى قيمة حول اتجاهات وأنماط ${guessedCategory.toLowerCase()}. مع ${fileStats.rowCount} إدخال ومقاييس رئيسية مثل ${fileStats.columns.slice(0, 4).join(', ')}، إنها مورد أساسي لاتخاذ القرارات المستندة إلى البيانات.`
       } : {})
     },
     {
-      title: `${filename} Research Collection`,
-      description: `This research-oriented dataset provides ${fileStats.rowCount} records of ${filename.toLowerCase()} data. The dataset includes key variables such as ${fileStats.columns.slice(0, 3).join(', ')}, and more, making it ideal for exploratory data analysis and research projects.`,
-      tags: [filename.toLowerCase(), 'research', 'collection', 'data analysis', ...fileStats.columns.slice(0, 4)],
-      category: guessCategory(fileStats.columns, 3),
-      ...(language === 'ar' || language === 'both' ? {
-        titleArabic: `مجموعة أبحاث ${filename}`,
-        descriptionArabic: `توفر مجموعة البيانات البحثية هذه ${fileStats.rowCount} سجلاً من بيانات ${filename.toLowerCase()}. تتضمن مجموعة البيانات متغيرات رئيسية مثل ${fileStats.columns.slice(0, 3).join(', ')}، وأكثر، مما يجعلها مثالية لتحليل البيانات الاستكشافية ومشاريع البحث.`
+      title: `Educational ${fileStats.name.split('.')[0]} Dataset`,
+      description: `A curated dataset designed for educational purposes, featuring ${fileStats.columns.length} key variables across ${fileStats.rowCount} observations. Perfect for students and educators looking to practice data analysis and visualization techniques.`,
+      tags: ["education", "learning", "practice", "visualization"],
+      category: "Education",
+      ...(language === 'ar' ? {
+        arabicTitle: `مجموعة بيانات ${fileStats.name.split('.')[0]} التعليمية`,
+        arabicDescription: `مجموعة بيانات منسقة مصممة للأغراض التعليمية، تضم ${fileStats.columns.length} متغيرًا رئيسيًا عبر ${fileStats.rowCount} ملاحظة. مثالية للطلاب والمعلمين الراغبين في ممارسة تقنيات تحليل البيانات والتصور.`
       } : {})
     }
   ];
 
-  return { options };
-}
-
-/**
- * Helper function to guess a category based on column names and a seed value
- */
-function guessCategory(columns: string[], seed: number): string {
-  const columnStr = columns.join(' ').toLowerCase();
-  const categories = [
-    'Finance', 'People', 'Time Series', 'Geography', 'Products', 
-    'Healthcare', 'Education', 'Research', 'Demographics', 'General'
-  ];
-  
-  // Use deterministic category selection based on column content and seed
-  if (columnStr.includes('price') || columnStr.includes('cost') || columnStr.includes('revenue')) {
-    return 'Finance';
-  } else if (columnStr.includes('name') || columnStr.includes('email') || columnStr.includes('phone')) {
-    return 'People';
-  } else if (columnStr.includes('date') || columnStr.includes('time') || columnStr.includes('year')) {
-    return 'Time Series';
-  } else if (columnStr.includes('country') || columnStr.includes('city') || columnStr.includes('location')) {
-    return 'Geography';
-  } else if (columnStr.includes('product') || columnStr.includes('item') || columnStr.includes('inventory')) {
-    return 'Products';
-  } else if (columnStr.includes('patient') || columnStr.includes('health') || columnStr.includes('medical')) {
-    return 'Healthcare';
-  } else if (columnStr.includes('student') || columnStr.includes('school') || columnStr.includes('education')) {
-    return 'Education';
-  } else {
-    // If no specific category is detected, use the seed to select one
-    return categories[(seed + columns.length) % categories.length];
-  }
+  return options;
 } 

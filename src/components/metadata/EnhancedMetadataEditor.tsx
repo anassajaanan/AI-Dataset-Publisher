@@ -9,358 +9,374 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Check, Loader2, Plus, X, Wand2 } from "lucide-react";
+import { AlertCircle, Check, Loader2, Plus, X, Wand2, Save, ArrowRight } from "lucide-react";
 import { MetadataOptionType } from '@/lib/services/ai/enhancedMetadataGenerator';
 
 interface EnhancedMetadataEditorProps {
   datasetId: string;
-  onSave?: (metadata: any) => void;
+  onSave?: () => void;
   onSubmit?: () => void;
 }
 
-export const EnhancedMetadataEditor: React.FC<EnhancedMetadataEditorProps> = ({
-  datasetId,
-  onSave,
-  onSubmit
-}) => {
-  const [language, setLanguage] = useState<'en' | 'ar' | 'both'>('en');
-  const [generating, setGenerating] = useState<boolean>(false);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+interface MetadataOption {
+  title: string;
+  description: string;
+  tags: string[];
+  category: string;
+  arabicTitle?: string;
+  arabicDescription?: string;
+}
+
+export default function EnhancedMetadataEditor({ datasetId, onSave, onSubmit }: EnhancedMetadataEditorProps) {
+  const [language, setLanguage] = useState<"en" | "ar">("en");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [tagInput, setTagInput] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<string>('en');
-  
-  // State for metadata options
-  const [metadataOptions, setMetadataOptions] = useState<MetadataOptionType[]>([]);
+  const [metadataOptions, setMetadataOptions] = useState<MetadataOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [editedMetadata, setEditedMetadata] = useState<MetadataOptionType>({
-    title: '',
-    description: '',
-    tags: [],
-    category: '',
-    titleArabic: '',
-    descriptionArabic: ''
-  });
-  
-  // Generate metadata options
-  const generateMetadata = async () => {
-    setGenerating(true);
+  const [editedMetadata, setEditedMetadata] = useState<MetadataOption | null>(null);
+  const [newTag, setNewTag] = useState<string>("");
+
+  useEffect(() => {
+    if (datasetId) {
+      generateMetadataOptions();
+    }
+  }, [datasetId]);
+
+  const generateMetadataOptions = async () => {
+    setIsGenerating(true);
     setError(null);
     
     try {
-      const response = await axios.post('/api/metadata/enhanced', {
+      const response = await axios.post("/api/metadata/enhanced", {
         datasetId,
         language
       });
       
-      if (response.data.metadata && response.data.metadata.options) {
-        setMetadataOptions(response.data.metadata.options);
-        // Select the first option by default
+      const options = response.data.metadata;
+      setMetadataOptions(options);
+      
+      if (options.length > 0) {
         setSelectedOption(0);
-        setEditedMetadata(response.data.metadata.options[0]);
+        setEditedMetadata(options[0]);
       }
     } catch (error) {
-      console.error('Error generating metadata:', error);
-      if (axios.isAxiosError(error) && error.response) {
-        setError(error.response.data.message || 'Failed to generate metadata.');
-      } else {
-        setError('Failed to generate metadata. Please try again.');
-      }
+      console.error("Error generating metadata:", error);
+      setError("Failed to generate metadata options. Please try again.");
+      
+      // Fallback to simulated options for development
+      const fallbackOptions = [
+        {
+          title: "Sample Dataset 1",
+          description: "This is a sample dataset description for option 1.",
+          tags: ["sample", "data", "option1"],
+          category: "Research",
+          arabicTitle: "مجموعة بيانات عينة 1",
+          arabicDescription: "هذا وصف مجموعة بيانات عينة للخيار 1."
+        },
+        {
+          title: "Sample Dataset 2",
+          description: "This is a sample dataset description for option 2.",
+          tags: ["sample", "data", "option2"],
+          category: "Education",
+          arabicTitle: "مجموعة بيانات عينة 2",
+          arabicDescription: "هذا وصف مجموعة بيانات عينة للخيار 2."
+        },
+        {
+          title: "Sample Dataset 3",
+          description: "This is a sample dataset description for option 3.",
+          tags: ["sample", "data", "option3"],
+          category: "Government",
+          arabicTitle: "مجموعة بيانات عينة 3",
+          arabicDescription: "هذا وصف مجموعة بيانات عينة للخيار 3."
+        }
+      ];
+      
+      setMetadataOptions(fallbackOptions);
+      setSelectedOption(0);
+      setEditedMetadata(fallbackOptions[0]);
     } finally {
-      setGenerating(false);
+      setIsGenerating(false);
     }
   };
-  
-  // Select a metadata option
-  const selectOption = (index: number) => {
+
+  const selectMetadataOption = (index: number) => {
     setSelectedOption(index);
     setEditedMetadata(metadataOptions[index]);
   };
-  
-  // Handle metadata field changes
-  const handleMetadataChange = (field: keyof MetadataOptionType, value: string | string[]) => {
-    setEditedMetadata(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-  
-  // Add a tag
-  const addTag = () => {
-    if (tagInput.trim() && !editedMetadata.tags.includes(tagInput.trim())) {
-      handleMetadataChange('tags', [...editedMetadata.tags, tagInput.trim()]);
-      setTagInput('');
+
+  const handleMetadataChange = (field: keyof MetadataOption, value: string) => {
+    if (editedMetadata) {
+      setEditedMetadata({
+        ...editedMetadata,
+        [field]: value
+      });
     }
   };
-  
-  // Remove a tag
-  const removeTag = (tag: string) => {
-    handleMetadataChange('tags', editedMetadata.tags.filter(t => t !== tag));
+
+  const handleAddTag = () => {
+    if (newTag.trim() && editedMetadata) {
+      if (!editedMetadata.tags.includes(newTag.trim())) {
+        setEditedMetadata({
+          ...editedMetadata,
+          tags: [...editedMetadata.tags, newTag.trim()]
+        });
+      }
+      setNewTag("");
+    }
   };
-  
-  // Save metadata as draft
-  const saveDraft = async () => {
-    setIsSaving(true);
+
+  const handleRemoveTag = (tag: string) => {
+    if (editedMetadata) {
+      setEditedMetadata({
+        ...editedMetadata,
+        tags: editedMetadata.tags.filter(t => t !== tag)
+      });
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!editedMetadata) return;
+    
+    setIsLoading(true);
     setError(null);
     
     try {
-      const response = await axios.put(`/api/datasets/${datasetId}/metadata`, {
-        metadata: {
-          title: editedMetadata.title,
-          description: editedMetadata.description,
-          tags: editedMetadata.tags,
-          category: editedMetadata.category,
-          titleArabic: editedMetadata.titleArabic,
-          descriptionArabic: editedMetadata.descriptionArabic
-        }
+      await axios.post(`/api/datasets/${datasetId}/metadata`, {
+        metadata: editedMetadata,
+        status: "draft"
       });
       
-      if (response.data.metadata) {
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
-        if (onSave) {
-          onSave(response.data.metadata);
-        }
+      if (onSave) {
+        onSave();
       }
     } catch (error) {
-      console.error('Error saving metadata:', error);
-      if (axios.isAxiosError(error) && error.response) {
-        setError(error.response.data.message || 'Failed to save metadata.');
-      } else {
-        setError('Failed to save metadata. Please try again.');
-      }
+      console.error("Error saving metadata:", error);
+      setError("Failed to save metadata. Please try again.");
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
-  
-  // Handle form submission
+
   const handleSubmit = async () => {
-    await saveDraft();
-    if (onSubmit) {
-      onSubmit();
+    if (!editedMetadata) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await axios.post(`/api/datasets/${datasetId}/metadata`, {
+        metadata: editedMetadata,
+        status: "submitted"
+      });
+      
+      if (onSubmit) {
+        onSubmit();
+      }
+    } catch (error) {
+      console.error("Error submitting metadata:", error);
+      setError("Failed to submit metadata. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
-  
-  // Handle key press for tag input
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTag();
-    }
-  };
-  
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Dataset Metadata</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setLanguage(language === 'en' ? 'both' : language === 'both' ? 'ar' : 'en')}
-              >
-                {language === 'en' ? 'English Only' : language === 'both' ? 'English & Arabic' : 'Arabic Only'}
-              </Button>
-              <Button 
-                onClick={generateMetadata} 
-                disabled={generating}
-                size="sm"
-              >
-                {generating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="mr-2 h-4 w-4" />
-                    Generate Metadata
-                  </>
-                )}
-              </Button>
-            </div>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-xl">Metadata Options</CardTitle>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLanguage("en")}
+              className={language === "en" ? "bg-primary/10" : ""}
+            >
+              English
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLanguage("ar")}
+              className={language === "ar" ? "bg-primary/10" : ""}
+            >
+              العربية
+            </Button>
           </div>
-          <CardDescription>
-            Generate and edit metadata for your dataset. The AI will suggest multiple options based on the file content.
-          </CardDescription>
-        </CardHeader>
-        
-        {error && (
-          <CardContent>
-            <div className="bg-destructive/10 text-destructive p-3 rounded-md flex items-start">
-              <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-              <p>{error}</p>
-            </div>
-          </CardContent>
-        )}
-        
-        {metadataOptions.length > 0 && selectedOption !== null ? (
-          <>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        </div>
+      </CardHeader>
+      
+      {error && (
+        <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-600">
+          <AlertCircle className="h-5 w-5" />
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+      
+      <CardContent>
+        {isGenerating ? (
+          <div className="py-8 text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Generating metadata options...</p>
+          </div>
+        ) : metadataOptions.length > 0 ? (
+          <div className="space-y-6">
+            <Tabs defaultValue="0" className="w-full">
+              <TabsList className="w-full grid grid-cols-3">
                 {metadataOptions.map((option, index) => (
-                  <Card 
-                    key={index} 
-                    className={`cursor-pointer transition-all ${selectedOption === index ? 'ring-2 ring-primary' : 'hover:border-primary/50'}`}
-                    onClick={() => selectOption(index)}
+                  <TabsTrigger
+                    key={index}
+                    value={index.toString()}
+                    onClick={() => selectMetadataOption(index)}
                   >
-                    <CardHeader className="p-4">
-                      <CardTitle className="text-base truncate">{option.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <p className="text-sm text-muted-foreground line-clamp-3">{option.description}</p>
-                    </CardContent>
-                    <CardFooter className="p-4 pt-0 flex justify-between">
-                      <Badge variant="outline">{option.category}</Badge>
-                      {selectedOption === index && (
-                        <Badge variant="default">
-                          <Check className="h-3 w-3 mr-1" />
-                          Selected
-                        </Badge>
-                      )}
-                    </CardFooter>
-                  </Card>
+                    Option {index + 1}
+                  </TabsTrigger>
                 ))}
-              </div>
+              </TabsList>
               
-              <Separator className="my-6" />
-              
-              <Tabs defaultValue="en" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="en">English</TabsTrigger>
-                  {(language === 'ar' || language === 'both') && (
-                    <TabsTrigger value="ar">Arabic</TabsTrigger>
-                  )}
-                </TabsList>
-                
-                <TabsContent value="en" className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Title</label>
-                    <Input 
-                      value={editedMetadata.title} 
-                      onChange={(e) => handleMetadataChange('title', e.target.value)}
-                      placeholder="Dataset title"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Description</label>
-                    <Textarea 
-                      value={editedMetadata.description} 
-                      onChange={(e) => handleMetadataChange('description', e.target.value)}
-                      placeholder="Dataset description"
-                      rows={5}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Category</label>
-                    <Input 
-                      value={editedMetadata.category} 
-                      onChange={(e) => handleMetadataChange('category', e.target.value)}
-                      placeholder="Dataset category"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Tags</label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {editedMetadata.tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              {metadataOptions.map((option, index) => (
+                <TabsContent key={index} value={index.toString()} className="pt-4">
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <h3 className="font-medium mb-2">
+                      {language === "en" ? option.title : option.arabicTitle || option.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {language === "en" ? option.description : option.arabicDescription || option.description}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {option.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
                           {tag}
-                          <X 
-                            className="h-3 w-3 cursor-pointer" 
-                            onClick={() => removeTag(tag)}
-                          />
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Category: <span className="font-medium">{option.category}</span>
+                    </div>
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+            
+            {editedMetadata && (
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="font-medium">Edit Metadata</h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium block mb-1">
+                      {language === "en" ? "Title" : "العنوان"}
+                    </label>
+                    <Input
+                      value={language === "en" ? editedMetadata.title : editedMetadata.arabicTitle || ""}
+                      onChange={(e) => handleMetadataChange(
+                        language === "en" ? "title" : "arabicTitle",
+                        e.target.value
+                      )}
+                      placeholder={language === "en" ? "Enter title" : "أدخل العنوان"}
+                      dir={language === "ar" ? "rtl" : "ltr"}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium block mb-1">
+                      {language === "en" ? "Description" : "الوصف"}
+                    </label>
+                    <Textarea
+                      value={language === "en" ? editedMetadata.description : editedMetadata.arabicDescription || ""}
+                      onChange={(e) => handleMetadataChange(
+                        language === "en" ? "description" : "arabicDescription",
+                        e.target.value
+                      )}
+                      placeholder={language === "en" ? "Enter description" : "أدخل الوصف"}
+                      rows={4}
+                      dir={language === "ar" ? "rtl" : "ltr"}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium block mb-1">
+                      {language === "en" ? "Category" : "الفئة"}
+                    </label>
+                    <Input
+                      value={editedMetadata.category}
+                      onChange={(e) => handleMetadataChange("category", e.target.value)}
+                      placeholder={language === "en" ? "Enter category" : "أدخل الفئة"}
+                      dir={language === "ar" ? "rtl" : "ltr"}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium block mb-1">
+                      {language === "en" ? "Tags" : "العلامات"}
+                    </label>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {editedMetadata.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            className="h-3 w-3 rounded-full bg-muted-foreground/30 flex items-center justify-center hover:bg-muted-foreground/50"
+                          >
+                            <X className="h-2 w-2" />
+                          </button>
                         </Badge>
                       ))}
                     </div>
                     <div className="flex gap-2">
-                      <Input 
-                        value={tagInput} 
-                        onChange={(e) => setTagInput(e.target.value)}
-                        placeholder="Add a tag"
-                        onKeyDown={handleKeyPress}
+                      <Input
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder={language === "en" ? "Add a tag" : "أضف علامة"}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                        dir={language === "ar" ? "rtl" : "ltr"}
                       />
-                      <Button variant="outline" onClick={addTag} type="button">
+                      <Button type="button" size="sm" onClick={handleAddTag}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                </TabsContent>
-                
-                {(language === 'ar' || language === 'both') && (
-                  <TabsContent value="ar" className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Title (Arabic)</label>
-                      <Input 
-                        value={editedMetadata.titleArabic || ''} 
-                        onChange={(e) => handleMetadataChange('titleArabic', e.target.value)}
-                        placeholder="عنوان مجموعة البيانات"
-                        dir="rtl"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Description (Arabic)</label>
-                      <Textarea 
-                        value={editedMetadata.descriptionArabic || ''} 
-                        onChange={(e) => handleMetadataChange('descriptionArabic', e.target.value)}
-                        placeholder="وصف مجموعة البيانات"
-                        rows={5}
-                        dir="rtl"
-                      />
-                    </div>
-                  </TabsContent>
-                )}
-              </Tabs>
-            </CardContent>
-            
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={saveDraft} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Draft'
-                )}
-              </Button>
-              
-              <div className="flex items-center gap-2">
-                {saveSuccess && (
-                  <span className="text-sm text-green-600 flex items-center">
-                    <Check className="h-4 w-4 mr-1" />
-                    Saved successfully
-                  </span>
-                )}
-                <Button onClick={handleSubmit} disabled={isSaving}>Continue</Button>
-              </div>
-            </CardFooter>
-          </>
-        ) : (
-          <CardContent className="text-center py-12">
-            {generating ? (
-              <div className="flex flex-col items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                <p className="text-muted-foreground">Generating metadata options...</p>
-                <p className="text-sm text-muted-foreground mt-2">This may take a few moments</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center">
-                <Wand2 className="h-8 w-8 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Click "Generate Metadata" to get AI-powered suggestions</p>
-                <p className="text-sm text-muted-foreground mt-2">The AI will analyze your dataset and provide multiple options</p>
+                </div>
               </div>
             )}
-          </CardContent>
+            
+            <div className="flex justify-between pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isLoading}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Draft
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={isLoading}
+              >
+                Continue <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="py-8 text-center">
+            <p className="text-muted-foreground">No metadata options available.</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={generateMetadataOptions}
+            >
+              Generate Metadata
+            </Button>
+          </div>
         )}
-      </Card>
-    </div>
+      </CardContent>
+    </Card>
   );
-}; 
+} 
