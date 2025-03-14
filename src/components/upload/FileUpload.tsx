@@ -10,7 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, AlertCircle, Upload, FileText, X, ArrowRight } from "lucide-react";
+import { CheckCircle, AlertCircle, Upload, FileText, X, ArrowRight, Eye, EyeOff } from "lucide-react";
+import CSVPreview from "@/components/preview/CSVPreview";
 
 interface FileStats {
   name: string;
@@ -26,6 +27,7 @@ export default function FileUpload() {
   const [datasetId, setDatasetId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false);
+  const [showPreview, setShowPreview] = useState<boolean>(false);
   const router = useRouter();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -57,6 +59,13 @@ export default function FileUpload() {
     });
     
     setUploadedFile(file);
+    
+    // Auto show preview for CSV files
+    if (file.type === 'text/csv') {
+      setShowPreview(true);
+    } else {
+      setShowPreview(false);
+    }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
@@ -113,6 +122,7 @@ export default function FileUpload() {
     setErrorMessage(null);
     setUploadProgress(0);
     setDatasetId(null);
+    setShowPreview(false);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -129,6 +139,10 @@ export default function FileUpload() {
     } else {
       return <FileText className="h-12 w-12 text-green-500" />;
     }
+  };
+
+  const togglePreview = () => {
+    setShowPreview(!showPreview);
   };
 
   return (
@@ -177,12 +191,30 @@ export default function FileUpload() {
                 <p className="font-medium truncate">{fileStats.name}</p>
                 <p className="text-sm text-muted-foreground">{formatFileSize(fileStats.size)}</p>
               </div>
-              {!isLoading && !datasetId && (
-                <Button onClick={handleUpload}>
-                  <Upload className="h-4 w-4 mr-2" /> Upload
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {fileStats.type === 'text/csv' && (
+                  <Button variant="outline" size="sm" onClick={togglePreview}>
+                    {showPreview ? (
+                      <><EyeOff className="h-4 w-4 mr-1" /> Hide Preview</>
+                    ) : (
+                      <><Eye className="h-4 w-4 mr-1" /> Preview</>
+                    )}
+                  </Button>
+                )}
+                {!isLoading && !datasetId && (
+                  <Button onClick={handleUpload}>
+                    <Upload className="h-4 w-4 mr-2" /> Upload
+                  </Button>
+                )}
+              </div>
             </div>
+            
+            {showPreview && uploadedFile && fileStats.type === 'text/csv' && (
+              <div className="mt-4 border rounded-lg p-4 bg-card">
+                <h4 className="text-sm font-medium mb-3">File Preview</h4>
+                <CSVPreview file={uploadedFile} maxRows={5} />
+              </div>
+            )}
             
             {isLoading && (
               <div className="space-y-2">
