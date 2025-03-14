@@ -37,96 +37,50 @@ Stores information about datasets uploaded to the platform.
 ```json
 {
   "_id": "ObjectId",
-  "title": "String",
-  "description": "String",
-  "category": "String",
-  "tags": ["String"],
-  "status": "String (enum: 'draft', 'pending_review', 'published', 'rejected')",
-  "createdBy": "ObjectId (ref: Users)",
+  "filename": "String",
+  "fileSize": "Number",
+  "rowCount": "Number",
+  "columns": ["String"],
   "createdAt": "Date",
-  "updatedAt": "Date",
-  "publishedAt": "Date",
-  "reviewedBy": "ObjectId (ref: Users)",
-  "reviewComment": "String",
-  "version": "Number",
-  "fileInfo": {
-    "fileName": "String",
-    "fileSize": "Number",
-    "fileType": "String",
-    "filePath": "String",
-    "rowCount": "Number",
-    "columnNames": ["String"]
-  },
-  "metadata": {
-    "title": "String",
-    "description": "String",
-    "category": "String",
-    "tags": ["String"],
-    "language": "String (enum: 'en', 'ar')",
-    "generatedAt": "Date",
-    "confidence": {
-      "title": "Number",
-      "description": "Number",
-      "category": "Number",
-      "tags": "Number"
-    }
-  }
+  "updatedAt": "Date"
 }
 ```
 
 ### DatasetVersions Collection
 
-Stores version history for datasets.
+Stores version information for datasets.
 
 ```json
 {
   "_id": "ObjectId",
   "datasetId": "ObjectId (ref: Datasets)",
-  "version": "Number",
-  "title": "String",
-  "description": "String",
-  "category": "String",
-  "tags": ["String"],
-  "status": "String (enum: 'draft', 'pending_review', 'published', 'rejected')",
-  "createdBy": "ObjectId (ref: Users)",
+  "versionNumber": "Number",
+  "filePath": "String",
+  "status": "String (enum: 'draft', 'review', 'published', 'rejected')",
+  "comments": "String",
   "createdAt": "Date",
-  "fileInfo": {
-    "fileName": "String",
-    "fileSize": "Number",
-    "fileType": "String",
-    "filePath": "String",
-    "rowCount": "Number",
-    "columnNames": ["String"]
-  },
-  "metadata": {
-    "title": "String",
-    "description": "String",
-    "category": "String",
-    "tags": ["String"],
-    "language": "String (enum: 'en', 'ar')"
-  },
-  "changes": ["String"]
+  "updatedAt": "Date"
 }
 ```
 
-### MetadataDrafts Collection
+### DatasetMetadata Collection
 
-Stores draft metadata for datasets.
+Stores metadata for datasets, with support for bilingual content.
 
 ```json
 {
   "_id": "ObjectId",
   "datasetId": "ObjectId (ref: Datasets)",
-  "createdBy": "ObjectId (ref: Users)",
+  "versionId": "ObjectId (ref: DatasetVersions)",
+  "title": "String",
+  "titleArabic": "String",
+  "description": "String",
+  "descriptionArabic": "String",
+  "keywords": ["String"],
+  "license": "String",
+  "author": "String",
   "createdAt": "Date",
-  "updatedAt": "Date",
-  "metadata": {
-    "title": "String",
-    "description": "String",
-    "category": "String",
-    "tags": ["String"],
-    "language": "String (enum: 'en', 'ar')"
-  }
+  "updatedAt": "Date"
 }
 ```
 
@@ -176,8 +130,8 @@ The following diagram illustrates the relationships between the collections:
 ```
 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
 │    Users    │◄──────┤   Datasets  │──────►│DatasetVersions│
-└─────────────┘       └──────┬──────┘       └─────────────┘
-       ▲                     │                     ▲
+└─────────────┘       └──────┬──────┘       └──────┬──────┘
+       ▲                     │                     │
        │                     │                     │
        │                     ▼                     │
        │              ┌─────────────┐              │
@@ -188,6 +142,16 @@ The following diagram illustrates the relationships between the collections:
                             │
                       ┌─────────────┐
                       │  Activities │
+                      └─────────────┘
+                      
+                      ┌─────────────┐
+                      │DatasetMetadata│
+                      └─────────────┘
+                            ▲
+                            │
+                            │
+                      ┌─────────────┐
+                      │   Datasets  │
                       └─────────────┘
 ```
 
@@ -202,22 +166,20 @@ The following indexes are created to optimize query performance:
 
 ### Datasets Collection
 
-- `createdBy`: Index for filtering datasets by creator
-- `status`: Index for filtering datasets by status
-- `tags`: Index for filtering datasets by tags
-- `category`: Index for filtering datasets by category
 - `createdAt`: Index for sorting datasets by creation date
 - `updatedAt`: Index for sorting datasets by update date
 
 ### DatasetVersions Collection
 
 - `datasetId`: Index for filtering versions by dataset
-- `version`: Index for filtering by version number
+- `versionNumber`: Index for filtering by version number
+- `status`: Index for filtering by status
 
-### MetadataDrafts Collection
+### DatasetMetadata Collection
 
-- `datasetId`: Index for filtering drafts by dataset
-- `createdBy`: Index for filtering drafts by creator
+- `datasetId`: Index for filtering metadata by dataset
+- `versionId`: Index for filtering metadata by version
+- `updatedAt`: Index for sorting metadata by update date
 
 ### Reviews Collection
 
