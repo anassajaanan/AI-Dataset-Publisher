@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import { 
   Card, 
@@ -22,8 +21,8 @@ import {
   Pencil,
   Send
 } from 'lucide-react';
-
-const prisma = new PrismaClient();
+import connectToDatabase from '@/lib/db/mongodb';
+import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
 
 export const metadata = {
   title: 'Dataset Details - Dataset Publishing Platform',
@@ -38,21 +37,31 @@ interface DatasetPageProps {
 
 async function getDataset(id: string) {
   try {
-    const dataset = await prisma.dataset.findUnique({
-      where: { id },
-      include: {
-        versions: {
-          orderBy: { versionNumber: 'desc' },
-          take: 1,
-        },
-        metadata: {
-          orderBy: { updatedAt: 'desc' },
-          take: 1,
-        },
-      },
-    });
+    // Connect to MongoDB
+    await connectToDatabase();
     
-    return dataset;
+    // Get dataset with its latest version and metadata
+    const dataset = await Dataset.findById(id);
+    
+    if (!dataset) {
+      return null;
+    }
+    
+    // Get the latest version
+    const versions = await DatasetVersion.find({ datasetId: dataset._id })
+      .sort({ versionNumber: -1 })
+      .limit(1);
+    
+    // Get the latest metadata
+    const metadata = await DatasetMetadata.find({ datasetId: dataset._id })
+      .sort({ updatedAt: -1 })
+      .limit(1);
+    
+    return {
+      ...dataset.toObject(),
+      versions: versions,
+      metadata: metadata
+    };
   } catch (error) {
     console.error('Error fetching dataset:', error);
     return null;
@@ -92,12 +101,10 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
     switch (status) {
       case 'draft':
         return 'secondary';
-      case 'pending_review':
+      case 'review':
         return 'warning';
-      case 'approved':
-        return 'success';
       case 'published':
-        return 'info';
+        return 'success';
       case 'rejected':
         return 'destructive';
       default:
@@ -106,7 +113,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
   };
   
   const getStatusLabel = (status: string) => {
-    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
   
   return (
@@ -138,7 +145,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
         
         <div className="flex gap-2 self-end md:self-auto">
           <Button variant="outline" asChild>
-            <Link href={`/datasets/${dataset.id}/metadata`}>
+            <Link href={`/datasets/${dataset._id}/metadata`}>
               <Pencil className="h-4 w-4 mr-2" />
               Edit Metadata
             </Link>
@@ -146,7 +153,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
           
           {latestVersion.status === 'draft' && (
             <Button asChild>
-              <Link href={`/datasets/${dataset.id}/submit`}>
+              <Link href={`/datasets/${dataset._id}/submit`}>
                 <Send className="h-4 w-4 mr-2" />
                 Submit for Review
               </Link>
@@ -221,11 +228,6 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
                 English
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></span>
               </Button>
-              {metadata.titleArabic && (
-                <Button variant="ghost" className="px-4 py-2 font-medium text-muted-foreground">
-                  Arabic
-                </Button>
-              )}
             </div>
           </CardHeader>
           
@@ -241,19 +243,24 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
             </div>
             
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
-              <Badge variant="secondary">{metadata.category}</Badge>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Keywords</h3>
               <div className="flex flex-wrap gap-2">
-                {metadata.tags.map((tag, index) => (
+                {metadata.keywords.map((keyword, index) => (
                   <Badge key={index} variant="outline">
-                    {tag}
+                    {keyword}
                   </Badge>
                 ))}
               </div>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">License</h3>
+              <p className="text-foreground">{metadata.license}</p>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Author</h3>
+              <p className="text-foreground">{metadata.author}</p>
             </div>
           </CardContent>
         </Card>
@@ -262,7 +269,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
           <CardContent className="pt-6 pb-6">
             <p className="text-muted-foreground mb-4">No metadata has been added for this dataset yet.</p>
             <Button asChild>
-              <Link href={`/datasets/${dataset.id}/metadata`}>
+              <Link href={`/datasets/${dataset._id}/metadata`}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Add Metadata
               </Link>
@@ -286,12 +293,12 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Notes</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Comments</th>
                 </tr>
               </thead>
               <tbody>
                 {dataset.versions.map((version) => (
-                  <tr key={version.id} className="border-b">
+                  <tr key={version._id.toString()} className="border-b">
                     <td className="py-3 px-4">{version.versionNumber}</td>
                     <td className="py-3 px-4">{formatDate(version.createdAt)}</td>
                     <td className="py-3 px-4">
@@ -299,7 +306,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
                         {getStatusLabel(version.status)}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4">-</td>
+                    <td className="py-3 px-4">{version.comments || '-'}</td>
                   </tr>
                 ))}
               </tbody>
