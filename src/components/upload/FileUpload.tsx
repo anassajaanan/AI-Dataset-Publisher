@@ -1,219 +1,237 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import axios from 'axios';
-import FilePreview from '../preview/FilePreview';
+import React, { useCallback, useState, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle, AlertCircle, Upload, FileText, X, ArrowRight } from "lucide-react";
 
-export type FileStats = {
-  rowCount: number;
-  columns: string[];
-  fileSize: number;
-  filename: string;
-};
+interface FileStats {
+  name: string;
+  size: number;
+  type: string;
+}
 
-export const FileUpload: React.FC = () => {
+export default function FileUpload() {
   const [fileStats, setFileStats] = useState<FileStats | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [datasetId, setDatasetId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false);
+  const router = useRouter();
 
-  const onDrop = async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0) return;
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    setErrorMessage(null);
+    
+    if (acceptedFiles.length === 0) {
+      return;
+    }
 
     const file = acceptedFiles[0];
     
-    // Reset previous state
+    // Validate file type
+    const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    if (!validTypes.includes(file.type)) {
+      setErrorMessage("Please upload a CSV or Excel file");
+      return;
+    }
+    
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("File size exceeds 10MB limit");
+      return;
+    }
+    
+    setFileStats({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
+    
     setUploadedFile(file);
-    setFileStats(null);
-    setErrorMessage('');
-    setDatasetId(null);
-    setIsLoading(true);
-    setUploadProgress(0);
-    
-    // Validate file extension
-    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-    const validExtensions = ['csv', 'xls', 'xlsx'];
-    
-    if (!validExtensions.includes(fileExtension)) {
-      setErrorMessage(`Invalid file type: .${fileExtension}. Please upload a CSV or Excel file (.csv, .xls, .xlsx).`);
-      setIsLoading(false);
-      return;
-    }
-    
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      setErrorMessage(`File is too large (${(file.size / (1024 * 1024)).toFixed(2)}MB). Maximum size is 10MB.`);
-      setIsLoading(false);
-      return;
-    }
-    
-    // Validate file is not empty
-    if (file.size === 0) {
-      setErrorMessage('File is empty. Please upload a non-empty file.');
-      setIsLoading(false);
-      return;
-    }
-    
-    try {
-      // Create a FormData instance
-      const formData = new FormData();
-      formData.append('file', file);
+  }, []);
 
-      const response = await axios.post('/api/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(percentCompleted);
-          }
-        }
-      });
-      
-      if (response.data && response.data.fileStats) {
-        setFileStats(response.data.fileStats);
-        if (response.data.datasetId) {
-          setDatasetId(response.data.datasetId);
-        }
-      } else {
-        setErrorMessage('Failed to process file. Server response did not include file statistics.');
-      }
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        const errorMessage = error.response.data.message || 'Error uploading file. Please try again.';
-        setErrorMessage(errorMessage);
-      } else {
-        setErrorMessage('Error uploading file. Please check your network connection and try again.');
-      }
-    } finally {
-      setIsLoading(false);
-      setUploadProgress(0);
-    }
-  };
-
-  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({ 
+  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
     accept: {
       'text/csv': ['.csv'],
       'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      // Add more generic types to handle different browser implementations
-      'application/octet-stream': ['.csv', '.xls', '.xlsx'],
-      'application/csv': ['.csv'],
-      'text/plain': ['.csv']
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
     },
     maxFiles: 1,
-    multiple: false
   });
+
+  const handleUpload = async () => {
+    if (!uploadedFile) return;
+    
+    setIsLoading(true);
+    setUploadProgress(0);
+    
+    const formData = new FormData();
+    formData.append("file", uploadedFile);
+    
+    try {
+      const response = await axios.post("/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(progress);
+          }
+        },
+      });
+      
+      setDatasetId(response.data.datasetId);
+      setShowSuccessDialog(true);
+    } catch (error) {
+      console.error("Upload error:", error);
+      setErrorMessage("Failed to upload file. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleViewDataset = () => {
+    if (datasetId) {
+      router.push(`/datasets/${datasetId}`);
+    }
+  };
 
   const resetUpload = () => {
     setFileStats(null);
-    setErrorMessage('');
     setUploadedFile(null);
-    setDatasetId(null);
+    setErrorMessage(null);
     setUploadProgress(0);
+    setDatasetId(null);
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' bytes';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(1) + ' MB';
+  };
+
+  const getFileIcon = () => {
+    if (!fileStats) return null;
+    
+    if (fileStats.type === 'text/csv') {
+      return <FileText className="h-12 w-12 text-primary" />;
+    } else {
+      return <FileText className="h-12 w-12 text-green-500" />;
+    }
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      {!fileStats && (
-        <div
-          {...getRootProps()}
-          className={`border-dashed border-2 rounded-lg p-8 text-center cursor-pointer transition-colors ${
-            isDragActive && !isDragReject ? 'border-primary bg-primary/10' : 
-            isDragReject ? 'border-red-500 bg-red-50' : 
-            'border-gray-300 hover:border-primary'
-          }`}
-          tabIndex={0}
-          aria-label="File Upload Area"
-          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.click(); }}
-        >
-          <input {...getInputProps()} />
-          <div className="flex flex-col items-center justify-center gap-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-12 w-12 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
-            <div>
-              <p className="text-lg font-medium">
-                {isDragActive ? 'Drop the file here' : 'Drag & drop a file here, or click to select'}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">Supports CSV and Excel files (.csv, .xls, .xlsx)</p>
-              <p className="text-sm text-gray-500">Maximum file size: 10MB</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-          <div className="flex flex-col items-center justify-center">
-            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-            <div className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <p className="text-blue-600">
-                {uploadProgress < 100 
-                  ? `Uploading: ${uploadProgress}%` 
-                  : 'Processing file...'}
-                {uploadedFile && ` - ${uploadedFile.name}`}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {errorMessage && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md" role="alert">
-          <div className="flex">
-            <svg className="h-5 w-5 text-red-400 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <p className="text-red-600 font-medium">Error</p>
-              <p className="text-red-600">{errorMessage}</p>
-              <button 
-                onClick={resetUpload}
-                className="mt-2 text-sm text-red-600 underline hover:text-red-800"
-              >
-                Try again with a different file
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {fileStats && datasetId && (
-        <div className="mt-4">
-          <FilePreview fileStats={fileStats} datasetId={datasetId} />
-          <button 
-            onClick={resetUpload}
-            className="mt-4 text-sm text-gray-600 underline hover:text-gray-800"
+    <div className="w-full max-w-3xl mx-auto">
+      <Card className="p-6 shadow-md">
+        {!fileStats ? (
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 cursor-pointer ${
+              isDragActive ? "border-primary bg-primary/5" : "border-gray-300 hover:border-primary/50"
+            } ${isDragReject ? "border-red-500 bg-red-50" : ""}`}
           >
-            Upload a different file
-          </button>
-        </div>
-      )}
+            <input {...getInputProps()} />
+            <div className="flex flex-col items-center justify-center gap-4">
+              <Upload className={`h-12 w-12 ${isDragActive ? "text-primary" : "text-gray-400"}`} />
+              
+              {isDragActive ? (
+                <p className="text-lg font-medium text-primary">Drop your file here</p>
+              ) : (
+                <>
+                  <p className="text-lg font-medium">Drag & drop your dataset file here</p>
+                  <p className="text-sm text-muted-foreground">or click to browse files</p>
+                </>
+              )}
+              
+              <div className="mt-2 text-xs text-muted-foreground">
+                <p>Accepted file types: CSV, Excel (.xls, .xlsx)</p>
+                <p>Maximum file size: 10MB</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Selected File</h3>
+              <Button variant="ghost" size="sm" onClick={resetUpload}>
+                <X className="h-4 w-4 mr-1" /> Clear
+              </Button>
+            </div>
+            
+            <Separator />
+            
+            <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+              {getFileIcon()}
+              <div className="flex-1">
+                <p className="font-medium truncate">{fileStats.name}</p>
+                <p className="text-sm text-muted-foreground">{formatFileSize(fileStats.size)}</p>
+              </div>
+              {!isLoading && !datasetId && (
+                <Button onClick={handleUpload}>
+                  <Upload className="h-4 w-4 mr-2" /> Upload
+                </Button>
+              )}
+            </div>
+            
+            {isLoading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Uploading...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
+          </div>
+        )}
+        
+        {errorMessage && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-600">
+            <AlertCircle className="h-5 w-5" />
+            <p className="text-sm">{errorMessage}</p>
+          </div>
+        )}
+      </Card>
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Upload Successful
+            </DialogTitle>
+            <DialogDescription>
+              Your dataset has been uploaded successfully and is ready for review.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4 space-y-4">
+            <p className="text-sm">
+              You can now view your dataset details and proceed with the metadata review process.
+            </p>
+            
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowSuccessDialog(false)}>
+                Close
+              </Button>
+              <Button onClick={handleViewDataset}>
+                View Dataset Details <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}; 
+} 
