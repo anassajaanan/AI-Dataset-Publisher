@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { generateMetadata, MetadataGenerationError } from '@/lib/services/ai/metadataGenerator';
-
-const prisma = new PrismaClient();
+import connectToDatabase from '@/lib/db/mongodb';
+import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
+import mongoose from 'mongoose';
 
 export async function POST(request: NextRequest) {
   try {
+    // Connect to MongoDB
+    await connectToDatabase();
+    
     const body = await request.json();
     const { datasetId, language = 'en' } = body;
     
@@ -17,15 +20,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Fetch the dataset
-    const dataset = await prisma.dataset.findUnique({
-      where: { id: datasetId },
-      include: {
-        versions: {
-          orderBy: { versionNumber: 'desc' },
-          take: 1
-        }
-      }
-    });
+    const dataset = await Dataset.findById(datasetId);
     
     if (!dataset) {
       return NextResponse.json(
@@ -33,6 +28,11 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+    
+    // Get the latest version
+    const latestVersion = await DatasetVersion.findOne({ datasetId: dataset._id })
+      .sort({ versionNumber: -1 })
+      .limit(1);
     
     // In a real application, you would read the file from storage
     // and extract sample data. For this example, we'll create mock data.
@@ -53,18 +53,16 @@ export async function POST(request: NextRequest) {
     );
     
     // Save metadata to database
-    const savedMetadata = await prisma.datasetMetadata.create({
-      data: {
-        title: metadata.title,
-        titleArabic: metadata.titleArabic,
-        description: metadata.description,
-        descriptionArabic: metadata.descriptionArabic,
-        tags: metadata.tags,
-        category: metadata.category,
-        isAIGenerated: true,
-        datasetId: dataset.id,
-        versionId: dataset.versions[0]?.id
-      }
+    const savedMetadata = await DatasetMetadata.create({
+      title: metadata.title,
+      titleArabic: metadata.titleArabic,
+      description: metadata.description,
+      descriptionArabic: metadata.descriptionArabic,
+      keywords: metadata.tags, // Note: MongoDB model uses keywords instead of tags
+      license: 'CC BY 4.0', // Default license
+      author: 'System Generated', // Default author
+      datasetId: dataset._id,
+      versionId: latestVersion?._id
     });
     
     return NextResponse.json({

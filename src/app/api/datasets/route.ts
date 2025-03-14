@@ -1,47 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import connectToDatabase from '@/lib/db/mongodb';
+import { Dataset } from '@/lib/db/models';
 
 export async function GET(request: NextRequest) {
   try {
+    // Connect to MongoDB
+    await connectToDatabase();
+    
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     
     // Build the query
-    const where: any = {};
-    
-    if (status && status !== 'all') {
-      where.versions = {
-        some: {
-          status
-        }
-      };
-    }
+    const query: any = {};
     
     if (search) {
-      where.filename = {
-        contains: search,
-        mode: 'insensitive'
-      };
+      query.filename = { $regex: search, $options: 'i' };
     }
     
-    // Fetch datasets with their latest version
-    const datasets = await prisma.dataset.findMany({
-      where,
-      include: {
-        versions: {
-          orderBy: {
-            versionNumber: 'desc'
-          },
-          take: 1
+    // Fetch datasets
+    let datasets = await Dataset.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    // If status filter is applied, we need to fetch versions and filter
+    if (status && status !== 'all') {
+      // We'll filter in memory since we need to join with versions
+      const { DatasetVersion } = await import('@/lib/db/models');
+      
+      // Get all dataset IDs
+      const datasetIds = datasets.map(dataset => dataset._id);
+      
+      // Fetch latest versions for each dataset
+      const versions = await DatasetVersion.find({
+        datasetId: { $in: datasetIds },
+      }).sort({ versionNumber: -1 });
+      
+      // Create a map of datasetId to its latest version
+      const latestVersionMap = new Map();
+      versions.forEach(version => {
+        const datasetId = version.datasetId.toString();
+        if (!latestVersionMap.has(datasetId)) {
+          latestVersionMap.set(datasetId, version);
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+      });
+      
+      // Filter datasets by status and add versions
+      datasets = datasets
+        .filter(dataset => {
+          const latestVersion = latestVersionMap.get(dataset._id.toString());
+          return latestVersion && latestVersion.status === status;
+        })
+        .map(dataset => {
+          const latestVersion = latestVersionMap.get(dataset._id.toString());
+          return {
+            ...dataset,
+            versions: latestVersion ? [latestVersion] : []
+          };
+        });
+    } else {
+      // If no status filter, just fetch the latest version for each dataset
+      const { DatasetVersion } = await import('@/lib/db/models');
+      
+      // Get all dataset IDs
+      const datasetIds = datasets.map(dataset => dataset._id);
+      
+      // Fetch latest versions for each dataset
+      const versions = await DatasetVersion.find({
+        datasetId: { $in: datasetIds },
+      }).sort({ versionNumber: -1 });
+      
+      // Create a map of datasetId to its latest version
+      const latestVersionMap = new Map();
+      versions.forEach(version => {
+        const datasetId = version.datasetId.toString();
+        if (!latestVersionMap.has(datasetId)) {
+          latestVersionMap.set(datasetId, version);
+        }
+      });
+      
+      // Add versions to datasets
+      datasets = datasets.map(dataset => {
+        const latestVersion = latestVersionMap.get(dataset._id.toString());
+        return {
+          ...dataset,
+          versions: latestVersion ? [latestVersion] : []
+        };
+      });
+    }
     
     return NextResponse.json({ datasets });
   } catch (error) {

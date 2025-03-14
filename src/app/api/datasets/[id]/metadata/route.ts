@@ -1,25 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import connectToDatabase from '@/lib/db/mongodb';
+import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
 
 export async function GET(
   request: NextRequest,
   context: { params: { id: string } }
 ) {
   try {
+    // Connect to MongoDB
+    await connectToDatabase();
+    
     const params = await context.params;
     const datasetId = params.id;
     
     // Find the latest metadata for this dataset
-    const metadata = await prisma.datasetMetadata.findFirst({
-      where: {
-        datasetId,
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
+    const metadata = await DatasetMetadata.findOne({ datasetId })
+      .sort({ updatedAt: -1 });
     
     if (!metadata) {
       return NextResponse.json(
@@ -43,28 +39,23 @@ export async function PUT(
   context: { params: { id: string } }
 ) {
   try {
+    // Connect to MongoDB
+    await connectToDatabase();
+    
     const params = await context.params;
     const datasetId = params.id;
     const { metadata } = await request.json();
     
     // Validate required fields
-    if (!metadata.title || !metadata.description || !metadata.category) {
+    if (!metadata.title || !metadata.description) {
       return NextResponse.json(
-        { message: 'Title, description, and category are required' },
+        { message: 'Title and description are required' },
         { status: 400 }
       );
     }
     
     // Find the dataset
-    const dataset = await prisma.dataset.findUnique({
-      where: { id: datasetId },
-      include: {
-        versions: {
-          orderBy: { versionNumber: 'desc' },
-          take: 1,
-        },
-      },
-    });
+    const dataset = await Dataset.findById(datasetId);
     
     if (!dataset) {
       return NextResponse.json(
@@ -73,44 +64,42 @@ export async function PUT(
       );
     }
     
+    // Find the latest version
+    const latestVersion = await DatasetVersion.findOne({ datasetId: dataset._id })
+      .sort({ versionNumber: -1 })
+      .limit(1);
+    
     // Find existing metadata
-    const existingMetadata = await prisma.datasetMetadata.findFirst({
-      where: {
-        datasetId,
-        versionId: dataset.versions[0]?.id,
-      },
+    const existingMetadata = await DatasetMetadata.findOne({
+      datasetId: dataset._id,
+      versionId: latestVersion?._id
     });
     
     let updatedMetadata;
     
     if (existingMetadata) {
       // Update existing metadata
-      updatedMetadata = await prisma.datasetMetadata.update({
-        where: { id: existingMetadata.id },
-        data: {
-          title: metadata.title,
-          titleArabic: metadata.titleArabic,
-          description: metadata.description,
-          descriptionArabic: metadata.descriptionArabic,
-          tags: metadata.tags,
-          category: metadata.category,
-          isAIGenerated: false,
-        },
-      });
+      existingMetadata.title = metadata.title;
+      existingMetadata.titleArabic = metadata.titleArabic;
+      existingMetadata.description = metadata.description;
+      existingMetadata.descriptionArabic = metadata.descriptionArabic;
+      existingMetadata.keywords = metadata.tags || [];
+      existingMetadata.license = metadata.license || 'CC BY 4.0';
+      existingMetadata.author = metadata.author || 'User Updated';
+      
+      updatedMetadata = await existingMetadata.save();
     } else {
       // Create new metadata
-      updatedMetadata = await prisma.datasetMetadata.create({
-        data: {
-          title: metadata.title,
-          titleArabic: metadata.titleArabic,
-          description: metadata.description,
-          descriptionArabic: metadata.descriptionArabic,
-          tags: metadata.tags,
-          category: metadata.category,
-          isAIGenerated: false,
-          datasetId,
-          versionId: dataset.versions[0]?.id,
-        },
+      updatedMetadata = await DatasetMetadata.create({
+        title: metadata.title,
+        titleArabic: metadata.titleArabic,
+        description: metadata.description,
+        descriptionArabic: metadata.descriptionArabic,
+        keywords: metadata.tags || [],
+        license: metadata.license || 'CC BY 4.0',
+        author: metadata.author || 'User Created',
+        datasetId: dataset._id,
+        versionId: latestVersion?._id
       });
     }
     
