@@ -299,7 +299,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
                         {getStatusLabel(version.status)}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4">{version.notes || '-'}</td>
+                    <td className="py-3 px-4">-</td>
                   </tr>
                 ))}
               </tbody>
