@@ -1,4 +1,26 @@
+# Dataset Publishing Platform
+
+A modern web application for uploading, processing, and publishing research datasets with AI-powered metadata generation.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Project Overview
+
+The Dataset Publishing Platform is designed to streamline the process of publishing research datasets. It provides a user-friendly interface for uploading datasets, automatically generates metadata using AI, and implements a structured workflow for review and publication.
+
+### Key Features
+
+- **Dataset Upload**: Drag-and-drop interface for uploading CSV and Excel files
+- **Automatic Processing**: Extract file statistics, column information, and data samples
+- **AI-Powered Metadata Generation**: Automatically generate descriptive metadata for datasets
+- **Bilingual Support**: Generate metadata in both English and Arabic
+- **Publishing Workflow**: Multi-step process for review and publication
+- **Version Control**: Track changes to datasets over time
+- **Dashboard**: Monitor dataset status and manage the publication process
+
+### Current Implementation Status
+
+The project is currently in active development. For a detailed breakdown of implemented features and next steps, see the [TRACKER.md](./TRACKER.md) file.
 
 ## Getting Started
 
@@ -16,9 +38,29 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                  # Next.js app router pages
+│   ├── api/              # API routes
+│   ├── datasets/         # Dataset listing and detail pages
+│   ├── dashboard/        # Dashboard pages
+│   ├── upload/           # Upload page
+│   └── page.tsx          # Home page
+├── components/           # React components
+│   ├── ui/               # UI components (buttons, cards, etc.)
+│   ├── preview/          # Data preview components
+│   ├── metadata/         # Metadata editing components
+│   ├── dashboard/        # Dashboard components
+│   └── upload/           # Upload components
+├── lib/                  # Utility functions and services
+│   ├── db/               # Database models and connection
+│   ├── services/         # Business logic services
+│   │   └── ai/           # AI services for metadata generation
+│   └── utils.ts          # Utility functions
+└── types/                # TypeScript type definitions
+```
 
 ## Learn More
 
@@ -91,3 +133,11 @@ If you encounter connection issues:
 - Ensure your IP address is whitelisted in MongoDB Atlas
 - Check that your username and password are correct
 - Verify that the connection string format is correct
+
+## Contributing
+
+Please see the [TRACKER.md](./TRACKER.md) file for information on current implementation status and next steps.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
