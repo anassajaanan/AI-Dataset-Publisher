@@ -24,8 +24,11 @@ export interface IDatasetVersion extends Document {
 // Dataset Metadata interface
 export interface IDatasetMetadata extends Document {
   datasetId: mongoose.Types.ObjectId;
+  versionId?: mongoose.Types.ObjectId;
   title: string;
+  titleArabic?: string;
   description: string;
+  descriptionArabic?: string;
   keywords: string[];
   license: string;
   author: string;
@@ -65,8 +68,11 @@ const DatasetVersionSchema = new Schema<IDatasetVersion>(
 const DatasetMetadataSchema = new Schema<IDatasetMetadata>(
   {
     datasetId: { type: Schema.Types.ObjectId, ref: 'Dataset', required: true },
+    versionId: { type: Schema.Types.ObjectId, ref: 'DatasetVersion' },
     title: { type: String, required: true },
+    titleArabic: { type: String },
     description: { type: String, required: true },
+    descriptionArabic: { type: String },
     keywords: { type: [String], required: true },
     license: { type: String, required: true },
     author: { type: String, required: true },

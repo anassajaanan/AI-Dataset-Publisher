@@ -4,13 +4,12 @@ import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Connect to MongoDB
     await connectToDatabase();
     
-    const params = await context.params;
     const datasetId = params.id;
     
     // Find the latest metadata for this dataset
@@ -36,13 +35,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Connect to MongoDB
     await connectToDatabase();
     
-    const params = await context.params;
     const datasetId = params.id;
     const { metadata } = await request.json();
     

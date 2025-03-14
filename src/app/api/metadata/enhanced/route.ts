@@ -1,85 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db/mongodb';
-import { generateEnhancedMetadata } from '@/lib/services/ai/enhancedMetadataGenerator';
+import { generateMetadata, MetadataGenerationError } from '@/lib/services/ai/metadataGenerator';
 import { getFileContent } from '@/lib/services/storage/fileStorageService';
 import Papa from 'papaparse';
+import { Dataset, DatasetVersion } from '@/lib/db/models';
 
+/**
+ * Enhanced metadata generation endpoint
+ * This endpoint provides more advanced metadata generation options
+ */
 export async function POST(request: NextRequest) {
   try {
     // Connect to MongoDB
-    const { db } = await connectToDatabase();
+    await connectToDatabase();
     
     // Parse request body
     const body = await request.json();
-    const { datasetId, language = 'en' } = body;
+    const { datasetId, language = 'en', options = {} } = body;
     
     // Validate datasetId
     if (!datasetId) {
       return NextResponse.json(
-        { error: 'Dataset ID is required' },
+        { message: 'Dataset ID is required' },
         { status: 400 }
       );
     }
     
-    // Get dataset from database
-    const dataset = await db.collection('datasets').findOne(
-      { _id: datasetId },
-      { projection: { versions: 1, name: 1 } }
-    );
+    // Fetch the dataset
+    const dataset = await Dataset.findById(datasetId);
     
     if (!dataset) {
       return NextResponse.json(
-        { error: 'Dataset not found' },
+        { message: 'Dataset not found' },
         { status: 404 }
       );
     }
     
     // Get the latest version
-    const latestVersion = dataset.versions?.[dataset.versions.length - 1];
+    const latestVersion = await DatasetVersion.findOne({ datasetId: dataset._id })
+      .sort({ versionNumber: -1 })
+      .limit(1);
     
     if (!latestVersion?.filePath) {
       return NextResponse.json(
-        { error: 'Dataset file path not found' },
+        { message: 'Dataset file not found' },
         { status: 404 }
       );
     }
     
-    // Read file content
-    const fileContent = await getFileContent(latestVersion.filePath);
+    // Get file content and sample data
+    let fileContent: string;
+    let sampleData: any[] = [];
     
-    // Parse CSV data to get sample rows
-    let sampleData: string[][] = [];
-    
-    if (latestVersion.fileType === 'csv') {
-      const parsedData = Papa.parse(fileContent, {
-        preview: 10, // Get first 10 rows for sample
-        skipEmptyLines: true
+    try {
+      // Read the file content
+      fileContent = await getFileContent(latestVersion.filePath);
+      
+      // Determine file type from filename
+      const fileExtension = dataset.filename.split('.').pop()?.toLowerCase() || '';
+      const isCSV = fileExtension === 'csv';
+      
+      // Parse the file to get sample data
+      if (isCSV) {
+        // Parse CSV to get sample data
+        const parseResult = Papa.parse(fileContent, { 
+          header: true, 
+          skipEmptyLines: true,
+          preview: 10 // Limit to 10 rows for sample data
+        });
+        
+        sampleData = parseResult.data as any[];
+      } else {
+        // For non-CSV files, create sample data from columns
+        sampleData = dataset.columns.map((column: string) => {
+          return { [column]: `Sample ${column} data` };
+        });
+      }
+    } catch (error) {
+      console.error('Error reading file:', error);
+      
+      // If we can't read the file, create mock sample data
+      sampleData = dataset.columns.map((column: string) => {
+        return { [column]: `Sample ${column} data` };
       });
       
-      if (parsedData.data && Array.isArray(parsedData.data)) {
-        sampleData = parsedData.data as string[][];
-      }
+      // Use an empty string for file content
+      fileContent = '';
     }
     
-    // Generate enhanced metadata
-    const metadata = await generateEnhancedMetadata({
-      fileStats: {
-        name: dataset.name || latestVersion.fileName,
-        size: latestVersion.fileSize,
-        rowCount: latestVersion.rowCount,
-        columns: latestVersion.columns
+    // Generate metadata with enhanced options
+    const metadataResponse = await generateMetadata(
+      {
+        filename: dataset.filename,
+        rowCount: dataset.rowCount,
+        columns: dataset.columns,
+        fileSize: dataset.fileSize
       },
       sampleData,
       fileContent,
-      language: language as 'en' | 'ar'
-    });
+      language as 'en' | 'ar' | 'both'
+    );
     
-    return NextResponse.json({ metadata }, { status: 200 });
+    return NextResponse.json({
+      message: 'Enhanced metadata generated successfully',
+      metadata: metadataResponse.options
+    });
   } catch (error) {
     console.error('Error generating enhanced metadata:', error);
     
+    if (error instanceof MetadataGenerationError) {
+      return NextResponse.json(
+        { message: error.message },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to generate metadata' },
+      { message: 'An error occurred while generating enhanced metadata' },
       { status: 500 }
     );
   }

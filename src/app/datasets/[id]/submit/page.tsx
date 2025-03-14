@@ -14,9 +14,9 @@ export const metadata = {
 };
 
 interface SubmitPageProps {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
+  };
 }
 
 async function getDataset(id: string) {
@@ -53,7 +53,7 @@ async function getDataset(id: string) {
 }
 
 export default async function SubmitPage({ params }: SubmitPageProps) {
-  const { id } = await params;
+  const { id } = params;
   const dataset = await getDataset(id);
   
   if (!dataset) {
@@ -124,7 +124,10 @@ export default async function SubmitPage({ params }: SubmitPageProps) {
               Your dataset will be reviewed by a supervisor. You will be notified when the review is complete.
             </p>
             
-            <SubmitForm datasetId={dataset._id.toString()} versionId={latestVersion._id.toString()} />
+            <SubmitForm 
+              datasetId={dataset._id ? dataset._id.toString() : id} 
+              versionId={latestVersion._id ? latestVersion._id.toString() : ''} 
+            />
           </CardContent>
         </Card>
       )}
