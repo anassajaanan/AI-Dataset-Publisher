@@ -2,6 +2,26 @@ import React from 'react';
 import Link from 'next/link';
 import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
+import { 
+  Card, 
+  CardHeader, 
+  CardTitle, 
+  CardContent, 
+  CardFooter 
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { 
+  ArrowLeft, 
+  FileText, 
+  Database, 
+  Tag, 
+  Calendar, 
+  BarChart2,
+  Pencil,
+  Send
+} from 'lucide-react';
 
 const prisma = new PrismaClient();
 
@@ -68,20 +88,20 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
   
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusVariant = (status: string) => {
     switch (status) {
       case 'draft':
-        return 'bg-gray-100 text-gray-800';
+        return 'secondary';
       case 'pending_review':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'warning';
       case 'approved':
-        return 'bg-green-100 text-green-800';
+        return 'success';
       case 'published':
-        return 'bg-blue-100 text-blue-800';
+        return 'info';
       case 'rejected':
-        return 'bg-red-100 text-red-800';
+        return 'destructive';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'secondary';
     }
   };
   
@@ -90,185 +110,203 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
   };
   
   return (
-    <div className="container mx-auto py-10 px-4">
-      <div className="mb-6">
-        <Link href="/dashboard" className="text-primary hover:underline flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 mr-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
-          Back to Dashboard
-        </Link>
+    <div className="container mx-auto py-10 px-4 space-y-8">
+      <div className="flex justify-between items-center">
+        <Button variant="ghost" asChild className="gap-1">
+          <Link href="/dashboard">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </Button>
       </div>
       
-      <div className="flex justify-between items-start mb-6">
-        <div>
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+        <div className="space-y-2">
           <h1 className="text-3xl font-bold">{dataset.filename}</h1>
-          <div className="mt-2 flex items-center">
-            <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(latestVersion.status)}`}>
+          <div className="flex items-center gap-2">
+            <Badge variant={getStatusVariant(latestVersion.status)}>
               {getStatusLabel(latestVersion.status)}
-            </span>
-            <span className="ml-2 text-sm text-gray-500">
-              Version {latestVersion.versionNumber} • Uploaded on {formatDate(dataset.createdAt)}
-            </span>
+            </Badge>
+            <div className="flex items-center text-sm text-muted-foreground">
+              <span>Version {latestVersion.versionNumber}</span>
+              <span className="mx-2">•</span>
+              <Calendar className="h-3.5 w-3.5 mr-1" />
+              <span>{formatDate(dataset.createdAt)}</span>
+            </div>
           </div>
         </div>
         
-        <div className="flex gap-2">
-          <Link
-            href={`/datasets/${dataset.id}/metadata`}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Edit Metadata
-          </Link>
-          {latestVersion.status === 'draft' && (
-            <Link
-              href={`/datasets/${dataset.id}/submit`}
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Submit for Review
+        <div className="flex gap-2 self-end md:self-auto">
+          <Button variant="outline" asChild>
+            <Link href={`/datasets/${dataset.id}/metadata`}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Metadata
             </Link>
+          </Button>
+          
+          {latestVersion.status === 'draft' && (
+            <Button asChild>
+              <Link href={`/datasets/${dataset.id}/submit`}>
+                <Send className="h-4 w-4 mr-2" />
+                Submit for Review
+              </Link>
+            </Button>
           )}
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold mb-4">File Information</h2>
-          <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <CardTitle>File Information</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <p className="text-sm text-gray-500">Filename</p>
+              <p className="text-sm text-muted-foreground">Filename</p>
               <p className="font-medium">{dataset.filename}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Size</p>
+              <p className="text-sm text-muted-foreground">Size</p>
               <p className="font-medium">{formatFileSize(dataset.fileSize)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Rows</p>
-              <p className="font-medium">{dataset.rowCount.toLocaleString()}</p>
+              <p className="text-sm text-muted-foreground">Rows</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium">{dataset.rowCount.toLocaleString()}</p>
+                <BarChart2 className="h-4 w-4 text-muted-foreground" />
+              </div>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Columns</p>
+              <p className="text-sm text-muted-foreground">Columns</p>
               <p className="font-medium">{dataset.columns.length}</p>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
         
-        <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold mb-4">Columns</h2>
-          <div className="flex flex-wrap gap-2">
-            {dataset.columns.map((column, index) => (
-              <span
-                key={index}
-                className="px-3 py-1 bg-gray-100 rounded-full text-sm"
-              >
-                {column}
-              </span>
-            ))}
-          </div>
-        </div>
+        <Card className="md:col-span-2">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
+              <CardTitle>Columns</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {dataset.columns.map((column, index) => (
+                <Badge 
+                  key={index} 
+                  variant="outline"
+                  className="bg-primary/5 hover:bg-primary/10 text-foreground border-primary/20"
+                >
+                  {column}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
       {metadata ? (
-        <div className="bg-white p-6 rounded-lg shadow-sm border mb-8">
-          <h2 className="text-lg font-semibold mb-4">Metadata</h2>
-          
-          <div className="mb-6">
-            <div className="flex border-b mb-4">
-              <button
-                className="px-4 py-2 font-medium border-b-2 border-primary text-primary"
-              >
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-primary" />
+              <CardTitle>Metadata</CardTitle>
+            </div>
+            <div className="flex border-b">
+              <Button variant="ghost" className="relative px-4 py-2 font-medium">
                 English
-              </button>
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></span>
+              </Button>
               {metadata.titleArabic && (
-                <button
-                  className="px-4 py-2 font-medium text-gray-500"
-                >
+                <Button variant="ghost" className="px-4 py-2 font-medium text-muted-foreground">
                   Arabic
-                </button>
+                </Button>
               )}
             </div>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Title</h3>
+              <p className="text-lg font-medium">{metadata.title}</p>
+            </div>
             
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Title</h3>
-                <p className="text-lg">{metadata.title}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Description</h3>
-                <p className="text-gray-800">{metadata.description}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Category</h3>
-                <p>{metadata.category}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Tags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {metadata.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-gray-100 rounded-full text-sm"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+              <p className="text-foreground">{metadata.description}</p>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
+              <Badge variant="secondary">{metadata.category}</Badge>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {metadata.tags.map((tag, index) => (
+                  <Badge key={index} variant="outline">
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="bg-white p-6 rounded-lg shadow-sm border mb-8 text-center">
-          <p className="text-gray-500 mb-4">No metadata has been added for this dataset yet.</p>
-          <Link
-            href={`/datasets/${dataset.id}/metadata`}
-            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Add Metadata
-          </Link>
-        </div>
+        <Card className="text-center">
+          <CardContent className="pt-6 pb-6">
+            <p className="text-muted-foreground mb-4">No metadata has been added for this dataset yet.</p>
+            <Button asChild>
+              <Link href={`/datasets/${dataset.id}/metadata`}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Add Metadata
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       )}
       
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-lg font-semibold mb-4">Version History</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2 px-4 text-left font-medium text-gray-500">Version</th>
-                <th className="py-2 px-4 text-left font-medium text-gray-500">Status</th>
-                <th className="py-2 px-4 text-left font-medium text-gray-500">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b">
-                <td className="py-3 px-4">{latestVersion.versionNumber}</td>
-                <td className="py-3 px-4">
-                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(latestVersion.status)}`}>
-                    {getStatusLabel(latestVersion.status)}
-                  </span>
-                </td>
-                <td className="py-3 px-4">{formatDate(latestVersion.createdAt)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" />
+            <CardTitle>Version History</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dataset.versions.map((version) => (
+                  <tr key={version.id} className="border-b">
+                    <td className="py-3 px-4">{version.versionNumber}</td>
+                    <td className="py-3 px-4">{formatDate(version.createdAt)}</td>
+                    <td className="py-3 px-4">
+                      <Badge variant={getStatusVariant(version.status)}>
+                        {getStatusLabel(version.status)}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">{version.notes || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 } 
