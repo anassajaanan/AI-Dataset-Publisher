@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import { FileStats } from '@/lib/services/fileProcessingService';
 import Link from 'next/link';
-import { DataTablePreview } from './DataTablePreview';
+import DataTablePreview from './DataTablePreview';
 
 interface FilePreviewProps {
   fileStats: FileStats;
   datasetId: string;
 }
 
-export const FilePreview: React.FC<FilePreviewProps> = ({ fileStats, datasetId }) => {
+const FilePreview: React.FC<FilePreviewProps> = ({ fileStats, datasetId }) => {
   const [showDataPreview, setShowDataPreview] = useState<boolean>(true);
   
   const formatFileSize = (bytes: number): string => {
@@ -81,4 +81,6 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ fileStats, datasetId }
       )}
     </div>
   );
-}; 
+};
+
+export default FilePreview; 

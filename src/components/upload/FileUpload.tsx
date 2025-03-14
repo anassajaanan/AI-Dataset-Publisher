@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
-import { FilePreview } from '../preview/FilePreview';
+import FilePreview from '../preview/FilePreview';
 
 export type FileStats = {
   rowCount: number;
