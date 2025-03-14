@@ -24,56 +24,11 @@ import {
   Send,
   Globe
 } from 'lucide-react';
-import connectToDatabase from '@/lib/db/mongodb';
-import { Dataset, DatasetVersion, DatasetMetadata, IDatasetVersion } from '@/lib/db/models';
-import mongoose from 'mongoose';
 
 interface DatasetPageProps {
   params: {
     id: string;
   };
-}
-
-async function getDataset(id: string) {
-  try {
-    // Connect to MongoDB
-    await connectToDatabase();
-    
-    // Validate id format to prevent CastError
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      console.error(`Invalid ObjectId: ${id}`);
-      return null;
-    }
-    
-    // Get dataset with its latest version and metadata
-    const dataset = await Dataset.findById(id);
-    
-    if (!dataset) {
-      return null;
-    }
-    
-    // Get latest version
-    const versions = await DatasetVersion.find({ datasetId: dataset._id })
-      .sort({ versionNumber: -1 })
-      .limit(1)
-      .lean();
-    
-    // Get metadata if available
-    let metadata = null;
-    if (versions.length > 0) {
-      metadata = await DatasetMetadata.findOne({ versionId: versions[0]._id }).lean();
-    }
-    
-    // Return dataset with versions and metadata
-    return {
-      ...dataset.toObject(),
-      versions,
-      metadata
-    };
-  } catch (error) {
-    console.error('Error fetching dataset:', error);
-    return null;
-  }
 }
 
 export default function DatasetPage({ params }: DatasetPageProps) {
