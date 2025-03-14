@@ -4,7 +4,7 @@ import { Dataset } from '@/lib/db/models';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     // Connect to MongoDB
@@ -18,7 +18,8 @@ export async function GET(
       );
     }
     
-    // Get the ID from params
+    // Get the ID from params - properly await the params object
+    const params = await context.params;
     const datasetId = params.id;
     const searchParams = request.nextUrl.searchParams;
     const maxRows = parseInt(searchParams.get('rows') || '10', 10);
