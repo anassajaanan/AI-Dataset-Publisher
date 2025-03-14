@@ -8,7 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Define the schema for one metadata option
+// Define the schema for one metadata option in English
 const MetadataOption = z.object({
   title: z.string(),
   description: z.string(),
@@ -16,14 +16,27 @@ const MetadataOption = z.object({
   category: z.string(),
 });
 
+// Define the schema for one metadata option with Arabic support
+const BilingualMetadataOption = MetadataOption.extend({
+  titleArabic: z.string(),
+  descriptionArabic: z.string(),
+});
+
 // Define the schema for the full response with exactly three options
 const MetadataResponseSchema = z.object({
   options: z.array(MetadataOption).length(3),
 });
 
+// Define the schema for the full bilingual response with exactly three options
+const BilingualMetadataResponseSchema = z.object({
+  options: z.array(BilingualMetadataOption).length(3),
+});
+
 // Export TypeScript types for later use if needed
 export type MetadataOptionType = z.infer<typeof MetadataOption>;
+export type BilingualMetadataOptionType = z.infer<typeof BilingualMetadataOption>;
 export type MetadataResponseType = z.infer<typeof MetadataResponseSchema>;
+export type BilingualMetadataResponseType = z.infer<typeof BilingualMetadataResponseSchema>;
 
 // Define the type for a single metadata option that has been selected for editing
 export interface GeneratedMetadata {
@@ -52,25 +65,19 @@ export const generateMetadata = async (
   sampleData: any[],
   fileContent: string,
   language: 'en' | 'ar' | 'both'
-): Promise<MetadataResponseType> => {
+): Promise<MetadataResponseType | BilingualMetadataResponseType> => {
   // Prepare a brief preview of the file content (first 1000 characters)
   const fileContentPreview = fileContent.slice(0, 1000);
   
   // Prepare a summary of basic file info
   const fileBasicInfo = `Filename: ${fileInfo.filename}, Row Count: ${fileInfo.rowCount}, Columns: ${fileInfo.columns.join(", ")}, File Size: ${fileInfo.fileSize} bytes`;
 
-  // Build the prompt including instructions and context.
-  const userPrompt = `
-You are an expert at generating metadata for datasets. Given the file content and basic file information provided below, please produce 3 distinct metadata options.
-Each option must include:
-- a title,
-- a description,
-- a list of tags,
-- a category suggestion.
-
-Respond with a JSON object that exactly matches the following schema:
-
-{
+  // Define the response schema based on the language option
+  let schemaExample = '';
+  let languageInstructions = '';
+  
+  if (language === 'en') {
+    schemaExample = `{
   "options": [
     {
       "title": "string",
@@ -91,11 +98,84 @@ Respond with a JSON object that exactly matches the following schema:
       "category": "string"
     }
   ]
-}
+}`;
+    languageInstructions = "Generate all metadata in English only.";
+  } else if (language === 'ar') {
+    schemaExample = `{
+  "options": [
+    {
+      "title": "string (in Arabic)",
+      "description": "string (in Arabic)",
+      "tags": ["string (in Arabic)"],
+      "category": "string (in Arabic)"
+    },
+    {
+      "title": "string (in Arabic)",
+      "description": "string (in Arabic)",
+      "tags": ["string (in Arabic)"],
+      "category": "string (in Arabic)"
+    },
+    {
+      "title": "string (in Arabic)",
+      "description": "string (in Arabic)",
+      "tags": ["string (in Arabic)"],
+      "category": "string (in Arabic)"
+    }
+  ]
+}`;
+    languageInstructions = "Generate all metadata in Arabic only. Make sure all text, including titles, descriptions, tags, and categories are in Arabic.";
+  } else if (language === 'both') {
+    schemaExample = `{
+  "options": [
+    {
+      "title": "string (in English)",
+      "titleArabic": "string (in Arabic)",
+      "description": "string (in English)",
+      "descriptionArabic": "string (in Arabic)",
+      "tags": ["string (in English)"],
+      "category": "string (in English)"
+    },
+    {
+      "title": "string (in English)",
+      "titleArabic": "string (in Arabic)",
+      "description": "string (in English)",
+      "descriptionArabic": "string (in Arabic)",
+      "tags": ["string (in English)"],
+      "category": "string (in English)"
+    },
+    {
+      "title": "string (in English)",
+      "titleArabic": "string (in Arabic)",
+      "description": "string (in English)",
+      "descriptionArabic": "string (in Arabic)",
+      "tags": ["string (in English)"],
+      "category": "string (in English)"
+    }
+  ]
+}`;
+    languageInstructions = "Generate metadata in both English and Arabic. Provide English versions in the 'title', 'description', 'tags', and 'category' fields, and Arabic translations in the 'titleArabic' and 'descriptionArabic' fields.";
+  }
+
+  // Build the prompt including instructions and context.
+  const userPrompt = `
+You are an expert at generating metadata for datasets. Given the file content and basic file information provided below, please produce 3 distinct metadata options.
+
+${languageInstructions}
+
+Each option must include:
+${language === 'en' || language === 'both' ? '- a title in English,' : ''}
+${language === 'ar' || language === 'both' ? '- a title in Arabic,' : ''}
+${language === 'en' || language === 'both' ? '- a description in English,' : ''}
+${language === 'ar' || language === 'both' ? '- a description in Arabic,' : ''}
+- a list of tags,
+- a category suggestion.
+
+Respond with a JSON object that exactly matches the following schema:
+
+${schemaExample}
 
 File Basic Information: ${fileBasicInfo}
 File Content Preview: ${fileContentPreview}
-Language: ${language}
   `;
 
   try {
@@ -105,7 +185,7 @@ Language: ${language}
       messages: [
         {
           role: "system",
-          content: "You are an expert metadata generator for datasets.",
+          content: "You are an expert metadata generator for datasets. You can generate metadata in both English and Arabic.",
         },
         { role: "user", content: userPrompt },
       ],
@@ -121,8 +201,15 @@ Language: ${language}
     let parsedContent;
     try {
       parsedContent = JSON.parse(content);
-      const validatedResponse = MetadataResponseSchema.parse(parsedContent);
-      return validatedResponse;
+      
+      // Validate based on language option
+      if (language === 'both') {
+        const validatedResponse = BilingualMetadataResponseSchema.parse(parsedContent);
+        return validatedResponse;
+      } else {
+        const validatedResponse = MetadataResponseSchema.parse(parsedContent);
+        return validatedResponse;
+      }
     } catch (error) {
       console.error("Error parsing OpenAI response:", error);
       throw new MetadataGenerationError("Failed to parse metadata from AI response");
