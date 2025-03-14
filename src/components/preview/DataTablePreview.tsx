@@ -10,7 +10,7 @@ interface DataTablePreviewProps {
 
 type PreviewData = {
   headers: string[];
-  rows: any[][];
+  rows: (string | number | boolean | null)[][];
   totalRows: number;
 };
 

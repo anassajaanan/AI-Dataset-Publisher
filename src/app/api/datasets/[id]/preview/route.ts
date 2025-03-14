@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset } from '@/lib/db/models';
-import * as XLSX from 'xlsx';
-import * as Papa from 'papaparse';
-import * as fs from 'fs';
-import * as path from 'path';
 
 export async function GET(
   request: NextRequest,
@@ -14,16 +10,16 @@ export async function GET(
     // Connect to MongoDB
     try {
       await connectToDatabase();
-    } catch (dbError) {
+    } catch (error) {
+      console.error('Database connection error:', error);
       return NextResponse.json(
         { message: 'Database connection error. Please try again later.' },
         { status: 500 }
       );
     }
     
-    // Await the params object before using its properties
-    const { id } = params;
-    const datasetId = id;
+    // Get the ID from params
+    const datasetId = params.id;
     const searchParams = request.nextUrl.searchParams;
     const maxRows = parseInt(searchParams.get('rows') || '10', 10);
     
