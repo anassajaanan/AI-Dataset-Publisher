@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { 
@@ -19,7 +21,8 @@ import {
   Calendar, 
   BarChart2,
   Pencil,
-  Send
+  Send,
+  Globe
 } from 'lucide-react';
 import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset, DatasetVersion, DatasetMetadata, IDatasetVersion } from '@/lib/db/models';
@@ -78,19 +81,61 @@ async function getDataset(id: string) {
   }
 }
 
-export default async function DatasetPage({ params }: DatasetPageProps) {
-  // Await the params object before accessing its properties
-  const resolvedParams = await Promise.resolve(params);
-  const id = resolvedParams.id;
+export default function DatasetPage({ params }: DatasetPageProps) {
+  const [activeTab, setActiveTab] = useState<'english' | 'arabic'>('english');
   
-  if (!id) {
-    notFound();
+  // Fetch dataset data
+  const [dataset, setDataset] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const id = params.id;
+        if (!id) {
+          throw new Error('Dataset ID is required');
+        }
+        
+        const response = await fetch(`/api/datasets/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch dataset');
+        }
+        
+        const data = await response.json();
+        setDataset(data);
+      } catch (err: any) {
+        setError(err.message || 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [params.id]);
+  
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
   }
   
-  const dataset = await getDataset(id);
-  
-  if (!dataset) {
-    notFound();
+  if (error || !dataset) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-2xl font-bold mb-4">Error Loading Dataset</h1>
+          <p className="text-muted-foreground mb-6">{error || 'Dataset not found'}</p>
+          <Button asChild>
+            <Link href="/dashboard">Return to Dashboard</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
   
   const latestVersion = dataset.versions[0];
@@ -99,44 +144,43 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
   const formatDate = (dateString: Date) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
   
-  const formatFileSize = (bytes: number): string => {
+  const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
-    
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
   
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'draft':
-        return 'secondary';
-      case 'review':
-        return 'warning';
-      case 'published':
-        return 'success';
-      case 'rejected':
-        return 'destructive';
-      default:
-        return 'secondary';
+      case 'draft': return 'secondary';
+      case 'submitted': return 'warning';
+      case 'approved': return 'success';
+      case 'rejected': return 'destructive';
+      default: return 'outline';
     }
   };
   
   const getStatusLabel = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
+    switch (status) {
+      case 'draft': return 'Draft';
+      case 'submitted': return 'Submitted';
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
+      default: return status;
+    }
   };
   
   return (
-    <div className="container mx-auto py-10 px-4 space-y-8">
-      <div className="flex justify-between items-center">
-        <Button variant="ghost" asChild className="gap-1">
+    <div className="container mx-auto py-8 px-4 space-y-6">
+      <div className="flex items-center mb-2">
+        <Button variant="ghost" size="sm" asChild className="gap-1 pl-0 hover:pl-1 transition-all">
           <Link href="/dashboard">
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
@@ -144,9 +188,9 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
         </Button>
       </div>
       
-      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">{dataset.filename}</h1>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{dataset.filename}</h1>
           <div className="flex items-center gap-2">
             <Badge variant={getStatusVariant(latestVersion.status)}>
               {getStatusLabel(latestVersion.status)}
@@ -219,7 +263,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {dataset.columns.map((column, index) => (
+              {dataset.columns.map((column: string, index: number) => (
                 <Badge 
                   key={index} 
                   variant="outline"
@@ -241,44 +285,95 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
               <CardTitle>Metadata</CardTitle>
             </div>
             <div className="flex border-b">
-              <Button variant="ghost" className="relative px-4 py-2 font-medium">
+              <Button 
+                variant="ghost" 
+                className={`relative px-4 py-2 font-medium ${activeTab === 'english' ? 'active-tab' : ''}`}
+                onClick={() => setActiveTab('english')}
+              >
                 English
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></span>
+                {activeTab === 'english' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></span>
+                )}
               </Button>
+              
+              {metadata.titleArabic && (
+                <Button 
+                  variant="ghost" 
+                  className={`relative px-4 py-2 font-medium ${activeTab === 'arabic' ? 'active-tab' : ''}`}
+                  onClick={() => setActiveTab('arabic')}
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Arabic
+                  {activeTab === 'arabic' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></span>
+                  )}
+                </Button>
+              )}
             </div>
           </CardHeader>
           
           <CardContent className="space-y-6">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Title</h3>
-              <p className="text-lg font-medium">{metadata.title}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-              <p className="text-foreground">{metadata.description}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Keywords</h3>
-              <div className="flex flex-wrap gap-2">
-                {metadata.keywords.map((keyword, index) => (
-                  <Badge key={index} variant="outline">
-                    {keyword}
-                  </Badge>
-                ))}
+            {/* English Metadata */}
+            {activeTab === 'english' && (
+              <div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Title</h3>
+                  <p className="text-lg font-medium">{metadata.title}</p>
+                </div>
+                
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+                  <p className="text-foreground">{metadata.description}</p>
+                </div>
+                
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {metadata.tags && metadata.tags.map((tag: string, index: number) => (
+                      <Badge key={index} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
+                  <p className="text-foreground">{metadata.category}</p>
+                </div>
               </div>
-            </div>
+            )}
             
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">License</h3>
-              <p className="text-foreground">{metadata.license}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Author</h3>
-              <p className="text-foreground">{metadata.author}</p>
-            </div>
+            {/* Arabic Metadata */}
+            {activeTab === 'arabic' && metadata.titleArabic && (
+              <div dir="rtl">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">العنوان</h3>
+                  <p className="text-lg font-medium">{metadata.titleArabic}</p>
+                </div>
+                
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">الوصف</h3>
+                  <p className="text-foreground">{metadata.descriptionArabic}</p>
+                </div>
+                
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">الكلمات المفتاحية</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {metadata.tags && metadata.tags.map((tag: string, index: number) => (
+                      <Badge key={index} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">الفئة</h3>
+                  <p className="text-foreground">{metadata.category}</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -314,7 +409,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
                 </tr>
               </thead>
               <tbody>
-                {dataset.versions.map((version) => (
+                {dataset.versions.map((version: any) => (
                   <tr key={version._id ? version._id.toString() : `version-${version.versionNumber}`} className="border-b">
                     <td className="py-3 px-4">{version.versionNumber}</td>
                     <td className="py-3 px-4">{formatDate(version.createdAt)}</td>

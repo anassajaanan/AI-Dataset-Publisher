@@ -143,4 +143,118 @@ export function ChatAssistant({
       {children}
     </div>
   )
+}
+
+const Chat = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-3 p-4", className)}
+    {...props}
+  />
+))
+Chat.displayName = "Chat"
+
+const ChatItem = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
+    position?: "left" | "right"
+  }
+>(({ className, position = "left", ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "flex w-max max-w-[75%] flex-col gap-2",
+      position === "right" ? "ml-auto" : "mr-auto",
+      className
+    )}
+    {...props}
+  />
+))
+ChatItem.displayName = "ChatItem"
+
+const ChatHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center gap-3", className)}
+    {...props}
+  />
+))
+ChatHeader.displayName = "ChatHeader"
+
+const ChatFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center gap-3", className)}
+    {...props}
+  />
+))
+ChatFooter.displayName = "ChatFooter"
+
+const ChatAvatar = React.forwardRef<
+  React.ElementRef<typeof Avatar>,
+  React.ComponentPropsWithoutRef<typeof Avatar>
+>(({ className, ...props }, ref) => (
+  <Avatar
+    ref={ref}
+    className={cn("h-8 w-8", className)}
+    {...props}
+  />
+))
+ChatAvatar.displayName = "ChatAvatar"
+
+const ChatBubble = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
+    position?: "left" | "right"
+  }
+>(({ className, position = "left", ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg px-4 py-3",
+      position === "left" 
+        ? "bg-muted text-muted-foreground" 
+        : "bg-primary text-primary-foreground",
+      className
+    )}
+    {...props}
+  />
+))
+ChatBubble.displayName = "ChatBubble"
+
+const ChatCard = React.forwardRef<
+  React.ElementRef<typeof Card>,
+  React.ComponentPropsWithoutRef<typeof Card> & {
+    selected?: boolean
+  }
+>(({ className, selected, ...props }, ref) => (
+  <Card
+    ref={ref}
+    className={cn(
+      "transition-all cursor-pointer hover:shadow-md",
+      selected && "ring-2 ring-primary",
+      className
+    )}
+    {...props}
+  />
+))
+ChatCard.displayName = "ChatCard"
+
+export {
+  Chat,
+  ChatItem,
+  ChatHeader,
+  ChatFooter,
+  ChatAvatar,
+  ChatBubble,
+  ChatCard
 } 
