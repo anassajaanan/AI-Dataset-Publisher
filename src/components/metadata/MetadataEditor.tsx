@@ -70,9 +70,19 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
       try {
         const response = await axios.get(`/api/datasets/${datasetId}/metadata`);
         if (response.data.metadata) {
-          setMetadata(response.data.metadata);
+          // Map database model to UI format
+          const dbMetadata = response.data.metadata;
+          setMetadata({
+            title: dbMetadata.title || '',
+            titleArabic: dbMetadata.titleArabic || '',
+            description: dbMetadata.description || '',
+            descriptionArabic: dbMetadata.descriptionArabic || '',
+            tags: dbMetadata.keywords || [],
+            category: dbMetadata.license || 'General'
+          });
+          
           // If metadata exists, go to editing but still require AI generation first
-          if (response.data.metadata.title && response.data.metadata.description) {
+          if (dbMetadata.title && dbMetadata.description) {
             setStep('editing');
           }
         }
@@ -152,15 +162,26 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
     setError(null);
     
     try {
+      // Map UI format to database model
+      const dbMetadata = {
+        title: metadata.title,
+        titleArabic: metadata.titleArabic,
+        description: metadata.description,
+        descriptionArabic: metadata.descriptionArabic,
+        tags: metadata.tags, // This will be mapped to keywords in the API
+        license: metadata.category || 'CC BY 4.0',
+        author: 'User' // Default author
+      };
+      
       const response = await axios.put(`/api/datasets/${datasetId}/metadata`, {
-        metadata
+        metadata: dbMetadata
       });
       
       if (response.data.metadata) {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
         if (onSave) {
-          onSave(response.data.metadata);
+          onSave(metadata);
         }
       }
     } catch (error) {

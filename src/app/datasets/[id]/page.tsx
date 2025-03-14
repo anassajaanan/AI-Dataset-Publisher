@@ -103,6 +103,16 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   const latestVersion = dataset.versions[0];
   const metadata = dataset.metadata;
   
+  // Map metadata properties to UI-friendly format if metadata exists
+  const formattedMetadata = metadata ? {
+    title: metadata.title,
+    titleArabic: metadata.titleArabic,
+    description: metadata.description,
+    descriptionArabic: metadata.descriptionArabic,
+    tags: metadata.keywords || [],
+    category: metadata.license || 'General'
+  } : null;
+  
   const formatDate = (dateString: Date) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -186,7 +196,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
           </div>
           
           <div className="flex gap-2 self-end md:self-auto">
-            {!metadata ? (
+            {!formattedMetadata ? (
               <Button asChild className="shadow-sm">
                 <Link href={`/datasets/${dataset._id}/metadata`}>
                   <Pencil className="h-4 w-4 mr-2" />
@@ -203,8 +213,8 @@ export default function DatasetPage({ params }: DatasetPageProps) {
             )}
             
             {latestVersion.status === 'draft' && (
-              <Button asChild className={!metadata ? "opacity-50 cursor-not-allowed" : "shadow-sm"} disabled={!metadata}>
-                <Link href={metadata ? `/datasets/${dataset._id}/submit` : "#"}>
+              <Button asChild className={!formattedMetadata ? "opacity-50 cursor-not-allowed" : "shadow-sm"} disabled={!formattedMetadata}>
+                <Link href={formattedMetadata ? `/datasets/${dataset._id}/submit` : "#"}>
                   <Send className="h-4 w-4 mr-2" />
                   Submit for Review
                 </Link>
@@ -213,7 +223,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
           </div>
         </div>
         
-        {!metadata && (
+        {!formattedMetadata && (
           <Alert className="bg-amber-50 border-amber-200 text-amber-800">
             <Info className="h-4 w-4 text-amber-800" />
             <AlertTitle>Metadata Required</AlertTitle>
@@ -291,7 +301,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
           </Card>
         </div>
         
-        {metadata ? (
+        {formattedMetadata ? (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -309,7 +319,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                     English
                   </Button>
                   
-                  {metadata.titleArabic && (
+                  {formattedMetadata.titleArabic && (
                     <Button 
                       variant="ghost" 
                       size="sm"
@@ -331,20 +341,20 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">Title</h3>
-                      <p className="text-lg font-medium">{metadata.title}</p>
+                      <p className="text-lg font-medium">{formattedMetadata.title}</p>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
                       <Badge variant="secondary" className="text-sm font-normal">
-                        {metadata.category}
+                        {formattedMetadata.category}
                       </Badge>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
                       <div className="flex flex-wrap gap-2">
-                        {metadata.tags && metadata.tags.map((tag: string, index: number) => (
+                        {formattedMetadata.tags && formattedMetadata.tags.map((tag: string, index: number) => (
                           <Badge key={index} variant="outline" className="bg-primary/5">
                             {tag}
                           </Badge>
@@ -355,31 +365,31 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                   
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-                    <p className="text-foreground whitespace-pre-line">{metadata.description}</p>
+                    <p className="text-foreground whitespace-pre-line">{formattedMetadata.description}</p>
                   </div>
                 </div>
               )}
               
               {/* Arabic Metadata */}
-              {activeTab === 'arabic' && metadata.titleArabic && (
+              {activeTab === 'arabic' && formattedMetadata.titleArabic && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir="rtl">
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">العنوان</h3>
-                      <p className="text-lg font-medium">{metadata.titleArabic}</p>
+                      <p className="text-lg font-medium">{formattedMetadata.titleArabic}</p>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">الفئة</h3>
                       <Badge variant="secondary" className="text-sm font-normal">
-                        {metadata.category}
+                        {formattedMetadata.category}
                       </Badge>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">الكلمات المفتاحية</h3>
                       <div className="flex flex-wrap gap-2">
-                        {metadata.tags && metadata.tags.map((tag: string, index: number) => (
+                        {formattedMetadata.tags && formattedMetadata.tags.map((tag: string, index: number) => (
                           <Badge key={index} variant="outline" className="bg-primary/5">
                             {tag}
                           </Badge>
@@ -390,7 +400,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                   
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">الوصف</h3>
-                    <p className="text-foreground whitespace-pre-line">{metadata.descriptionArabic}</p>
+                    <p className="text-foreground whitespace-pre-line">{formattedMetadata.descriptionArabic}</p>
                   </div>
                 </div>
               )}
