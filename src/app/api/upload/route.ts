@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     try {
       await connectToDatabase();
     } catch (dbError) {
+      console.error('Database connection error:', dbError);
       return NextResponse.json(
         { message: 'Database connection error. Please try again later.' },
         { status: 500 }
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
     try {
       formData = await request.formData();
     } catch (formError) {
+      console.error('Form data parsing error:', formError);
       return NextResponse.json(
         { message: 'Error parsing form data. Please try again.' },
         { status: 400 }
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
     try {
       fileStats = await processFile(file);
     } catch (processError) {
+      console.error('File processing error:', processError);
       if (processError instanceof FileProcessingError) {
         return NextResponse.json(
           { message: processError.message },
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
     try {
       result = await Dataset.create(datasetData);
     } catch (dbError) {
+      console.error('Database error when creating dataset:', dbError);
       return NextResponse.json(
         { message: 'Error saving dataset to database. Please try again.' },
         { status: 500 }
@@ -129,6 +133,7 @@ export async function POST(request: NextRequest) {
       
       await DatasetVersion.create(versionData);
     } catch (error) {
+      console.error('Error creating dataset version:', error);
       // Even if version creation fails, we'll still return the dataset and file stats
       // In a production app, you might want to handle this differently
     }
@@ -140,6 +145,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     // For any other errors, return a generic error message
+    console.error('Unexpected error during file upload:', error);
     return NextResponse.json(
       { message: 'An unexpected error occurred while processing the file. Please try again with a different file.' },
       { status: 500 }

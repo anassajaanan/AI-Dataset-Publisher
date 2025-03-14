@@ -75,7 +75,7 @@ export default function UploadWorkflow() {
         });
       }, 500);
 
-      const response = await fetch('/api/datasets/upload', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });

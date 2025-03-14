@@ -43,12 +43,35 @@ export async function saveFile(file: File, datasetId: string): Promise<string> {
     const filename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filePath = path.join(datasetDir, filename);
     
+    // Log file information for debugging
+    console.log('Saving file:', {
+      originalName: file.name,
+      safeFilename: filename,
+      size: file.size,
+      type: file.type,
+      datasetDir,
+      filePath
+    });
+    
     // Convert the file to an ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
+    
+    // Check if arrayBuffer is valid
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+      throw new FileStorageError('File content is empty or could not be read');
+    }
+    
     const buffer = Buffer.from(arrayBuffer);
     
     // Write the file to disk
     await fsPromises.writeFile(filePath, buffer);
+    
+    // Verify the file was written successfully
+    const stats = await fsPromises.stat(filePath);
+    console.log('File saved successfully:', {
+      path: filePath,
+      size: stats.size
+    });
     
     // Return the relative path (for storage in the database)
     return path.join('uploads', datasetId, filename);

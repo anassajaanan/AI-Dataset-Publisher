@@ -114,9 +114,23 @@ export default function FileUpload({ onFileUploaded }: FileUploadProps) {
         // Otherwise, show the success dialog
         setShowSuccessDialog(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
-      setErrorMessage("Failed to upload file. Please try again.");
+      
+      // Provide more detailed error information
+      if (error.response) {
+        // The server responded with a status code outside the 2xx range
+        setErrorMessage(error.response.data?.message || `Server error: ${error.response.status}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        setErrorMessage("No response from server. Please check your connection and try again.");
+      } else if (error.message && error.message.includes("JSON")) {
+        // JSON parsing error
+        setErrorMessage("Error processing server response. Please try again with a different file.");
+      } else {
+        // Something else happened while setting up the request
+        setErrorMessage(error.message || "Failed to upload file. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }

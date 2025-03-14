@@ -81,17 +81,26 @@ async function processCSV(arrayBuffer: ArrayBuffer, fileSize: number, filename: 
         return;
       }
       
+      // Add additional logging for debugging
+      console.log('CSV content length:', cleanContent.length);
+      console.log('CSV first 100 chars:', cleanContent.substring(0, 100));
+      
       Papa.parse<Record<string, unknown>>(cleanContent, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
           if (results.errors && results.errors.length > 0) {
+            console.error('CSV parsing errors:', results.errors);
             reject(new FileProcessingError('Error parsing CSV file: ' + results.errors[0].message));
             return;
           }
           
           const data = results.data as Record<string, unknown>[];
           const columns = results.meta.fields || [];
+          
+          // Add additional logging for debugging
+          console.log('CSV parsed columns:', columns);
+          console.log('CSV parsed row count:', data.length);
           
           if (columns.length === 0) {
             reject(new FileProcessingError('CSV file has no columns or headers. Please ensure your CSV file has headers.'));
@@ -111,10 +120,12 @@ async function processCSV(arrayBuffer: ArrayBuffer, fileSize: number, filename: 
           });
         },
         error: (error: Error) => {
+          console.error('Papa Parse error:', error);
           reject(new FileProcessingError('Error parsing CSV file: ' + error.message));
         }
       });
     } catch (error) {
+      console.error('Unexpected error in processCSV:', error);
       reject(new FileProcessingError('Failed to process CSV file. The file may be corrupted.'));
     }
   });

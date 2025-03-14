@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { 
@@ -84,15 +84,17 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  React.useEffect(() => {
+  // Extract id from params to use in the dependency array
+  const datasetId = params.id;
+  
+  useEffect(() => {
     const fetchData = async () => {
       try {
-        const id = params.id;
-        if (!id) {
+        if (!datasetId) {
           throw new Error('Dataset ID is required');
         }
         
-        const response = await fetch(`/api/datasets/${id}`);
+        const response = await fetch(`/api/datasets/${datasetId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch dataset');
         }
@@ -107,7 +109,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
     };
     
     fetchData();
-  }, [params.id]);
+  }, [datasetId]);
   
   if (loading) {
     return (
