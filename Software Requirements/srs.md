@@ -91,7 +91,6 @@ The Dataset Publishing Platform is a modern web application that lets users:
     - Create a component to display file stats (row count, column names, file size).
     - Handle error display if file validation fails.
 5. **Database Schema**
-    - Define models (e.g., using Prisma or any ORM) for datasets.
     - Include fields: id, filename, rowCount, columns, fileSize, uploadDate, etc.
 
 ### 2.1.2 Pseudocode

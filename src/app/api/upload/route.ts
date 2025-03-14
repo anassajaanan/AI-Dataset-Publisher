@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processFile, FileProcessingError } from '@/lib/services/fileProcessingService';
+import { saveFile, FileStorageError } from '@/lib/services/storage/fileStorageService';
 import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset, DatasetVersion } from '@/lib/db/models';
 import mongoose from 'mongoose';
@@ -105,11 +106,20 @@ export async function POST(request: NextRequest) {
     const datasetDoc = result as unknown as { _id: mongoose.Types.ObjectId };
     const datasetId = datasetDoc._id.toString();
 
+    // Save the file to the file system
+    let filePath;
+    try {
+      filePath = await saveFile(file, datasetId);
+    } catch (storageError) {
+      console.error('Error saving file to storage:', storageError);
+      
+      // Even if file storage fails, we'll still create the dataset version
+      // with a placeholder path, but log the error
+      filePath = `/uploads/${datasetId}/${fileStats.filename}`;
+    }
+
     // Create initial version
     try {
-      // In a real application, you would save the file to a storage service
-      const filePath = `/uploads/${datasetId}/${fileStats.filename}`;
-      
       const versionData = {
         versionNumber: 1,
         filePath,

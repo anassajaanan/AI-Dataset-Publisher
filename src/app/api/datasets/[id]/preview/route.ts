@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db/mongodb';
-import { Dataset } from '@/lib/db/models';
+import { Dataset, DatasetVersion } from '@/lib/db/models';
+import { getFileContent, getFileArrayBuffer, FileStorageError } from '@/lib/services/storage/fileStorageService';
+import * as Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 export async function GET(
   request: NextRequest,
@@ -34,39 +37,77 @@ export async function GET(
       );
     }
     
-    // In a real implementation, you would read the file from storage
-    // For this example, we'll generate sample data based on the columns
+    // Get the latest version to find the file path
+    const latestVersion = await DatasetVersion.findOne({ datasetId: dataset._id })
+      .sort({ versionNumber: -1 })
+      .limit(1);
     
-    const headers = dataset.columns || [];
+    if (!latestVersion || !latestVersion.filePath) {
+      return NextResponse.json(
+        { message: 'Dataset file not found' },
+        { status: 404 }
+      );
+    }
     
-    // Generate sample data based on column names
-    const rows = [];
-    for (let i = 0; i < Math.min(maxRows, 20); i++) {
-      const row = headers.map(column => {
-        // Generate appropriate sample data based on column name
-        if (column.toLowerCase().includes('id')) {
-          return i + 1;
-        } else if (column.toLowerCase().includes('name')) {
-          const names = ['John Doe', 'Jane Smith', 'Bob Johnson', 'Alice Brown', 'Charlie Wilson'];
-          return names[i % names.length];
-        } else if (column.toLowerCase().includes('age')) {
-          return 20 + Math.floor(Math.random() * 50);
-        } else if (column.toLowerCase().includes('date')) {
-          const date = new Date();
-          date.setDate(date.getDate() - i * 7);
-          return date.toISOString().split('T')[0];
-        } else if (column.toLowerCase().includes('email')) {
-          const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'example.com'];
-          return `user${i + 1}@${domains[i % domains.length]}`;
-        } else if (column.toLowerCase().includes('price') || column.toLowerCase().includes('cost')) {
-          return (Math.random() * 100).toFixed(2);
-        } else if (column.toLowerCase().includes('quantity') || column.toLowerCase().includes('count')) {
-          return Math.floor(Math.random() * 100);
-        } else {
-          return `Sample ${column} ${i + 1}`;
+    const filePath = latestVersion.filePath;
+    const fileExtension = dataset.filename.split('.').pop()?.toLowerCase() || '';
+    
+    let headers: string[] = [];
+    let rows: any[] = [];
+    
+    try {
+      if (fileExtension === 'csv') {
+        // Read and parse CSV file
+        const fileContent = await getFileContent(filePath);
+        const parseResult = Papa.parse(fileContent, { header: true, skipEmptyLines: true });
+        
+        if (parseResult.errors && parseResult.errors.length > 0) {
+          console.error('CSV parsing errors:', parseResult.errors);
         }
-      });
-      rows.push(row);
+        
+        headers = parseResult.meta.fields || [];
+        
+        // Convert data to array format for consistent response
+        rows = parseResult.data.slice(0, maxRows).map((row: any) => {
+          return headers.map(header => row[header]);
+        });
+      } else if (['xls', 'xlsx'].includes(fileExtension)) {
+        // Read and parse Excel file
+        const arrayBuffer = await getFileArrayBuffer(filePath);
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          throw new Error('Excel file has no sheets');
+        }
+        
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to JSON with header option
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        if (!jsonData || jsonData.length === 0) {
+          throw new Error('Excel file has no data');
+        }
+        
+        // First row should be headers
+        headers = jsonData[0] as string[];
+        
+        // Data rows (excluding header)
+        rows = jsonData.slice(1, maxRows + 1) as any[];
+      }
+    } catch (error) {
+      console.error('Error reading file:', error);
+      
+      // If we can't read the actual file, fall back to the column names from the database
+      headers = dataset.columns || [];
+      
+      // Generate sample data based on column names (fallback)
+      rows = [];
+      for (let i = 0; i < Math.min(maxRows, 5); i++) {
+        const row = headers.map(column => `Sample ${column} ${i + 1}`);
+        rows.push(row);
+      }
     }
     
     return NextResponse.json({

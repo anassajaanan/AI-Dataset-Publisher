@@ -33,12 +33,19 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Added user-friendly error messages for invalid file uploads
   - Created UI components to display errors
 
+- ✅ **File Storage System**
+  - Implemented local file system storage for uploaded files
+  - Created directory structure based on dataset IDs
+  - Added file path tracking in the database
+  - Implemented file content retrieval for preview and AI processing
+
 ### Mini-Task 2: AI-Powered Metadata Generation (Partially Implemented)
 
 - ✅ **Metadata Generation Service**
   - Created service structure for AI-powered metadata generation
   - Implemented simulation of AI responses for development purposes
   - Added support for bilingual generation (English and Arabic)
+  - Enhanced metadata generation with file content analysis
 
 - ⚠️ **Metadata Editor UI**
   - Basic structure implemented, but needs enhancement
@@ -71,6 +78,7 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Handles file uploads
   - Processes and validates files
   - Creates dataset records in the database
+  - Saves files to the local file system
 
 - ✅ `/api/datasets`
   - Lists all datasets with filtering options
@@ -80,11 +88,15 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Returns details for a specific dataset
   - Includes version history and metadata
 
-- ⚠️ `/api/datasets/[id]/preview`
-  - Structure exists but may need enhancement
+- ✅ `/api/datasets/[id]/preview`
+  - Retrieves and parses file content for preview
+  - Returns headers and sample rows from the actual file
+  - Includes fallback for error handling
 
-- ⚠️ `/api/metadata`
-  - Structure exists but may need enhancement
+- ✅ `/api/metadata`
+  - Generates metadata using AI-powered analysis
+  - Reads file content for enhanced metadata generation
+  - Supports bilingual metadata generation
 
 ## Pages Implemented
 
@@ -132,6 +144,11 @@ This document tracks the implementation progress of the Dataset Publishing Platf
 
 - ⚠️ **MetadataEditor**
   - Structure exists but may need enhancement
+
+- ✅ **FileStorageService**
+  - File saving and retrieval
+  - Directory management
+  - Error handling
 
 ## Next Steps
 

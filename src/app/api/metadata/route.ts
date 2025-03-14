@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateMetadata, MetadataGenerationError } from '@/lib/services/ai/metadataGenerator';
+import { getFileContent, FileStorageError } from '@/lib/services/storage/fileStorageService';
 import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset, DatasetVersion, DatasetMetadata } from '@/lib/db/models';
 import mongoose from 'mongoose';
+import * as Papa from 'papaparse';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,11 +36,50 @@ export async function POST(request: NextRequest) {
       .sort({ versionNumber: -1 })
       .limit(1);
     
-    // In a real application, you would read the file from storage
-    // and extract sample data. For this example, we'll create mock data.
-    const sampleData = dataset.columns.map(column => {
-      return { [column]: `Sample ${column} data` };
-    });
+    if (!latestVersion || !latestVersion.filePath) {
+      return NextResponse.json(
+        { message: 'Dataset file not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Get file content and sample data
+    let fileContent: string | undefined;
+    let sampleData: any[] = [];
+    
+    try {
+      // Read the file content
+      fileContent = await getFileContent(latestVersion.filePath);
+      
+      // Parse the file to get sample data
+      const fileExtension = dataset.filename.split('.').pop()?.toLowerCase() || '';
+      
+      if (fileExtension === 'csv') {
+        // Parse CSV to get sample data
+        const parseResult = Papa.parse(fileContent, { 
+          header: true, 
+          skipEmptyLines: true,
+          preview: 10 // Limit to 10 rows for sample data
+        });
+        
+        sampleData = parseResult.data as any[];
+      } else {
+        // For non-CSV files, create sample data from columns
+        sampleData = dataset.columns.map(column => {
+          return { [column]: `Sample ${column} data` };
+        });
+      }
+    } catch (error) {
+      console.error('Error reading file:', error);
+      
+      // If we can't read the file, create mock sample data
+      sampleData = dataset.columns.map(column => {
+        return { [column]: `Sample ${column} data` };
+      });
+      
+      // Continue without file content
+      fileContent = undefined;
+    }
     
     // Generate metadata
     const metadata = await generateMetadata(
@@ -49,7 +90,8 @@ export async function POST(request: NextRequest) {
         fileSize: dataset.fileSize
       },
       sampleData,
-      language as 'en' | 'ar' | 'both'
+      language as 'en' | 'ar' | 'both',
+      fileContent // Pass the file content to the metadata generator
     );
     
     // Save metadata to database

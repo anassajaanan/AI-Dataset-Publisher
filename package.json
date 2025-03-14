@@ -6,11 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-uploads": "node scripts/setup-uploads-dir.js",
+    "postinstall": "npm run setup-uploads"
   },
   "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.3",
+    "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-progress": "^1.1.2",
     "@radix-ui/react-separator": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.3",
     "axios": "^1.8.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

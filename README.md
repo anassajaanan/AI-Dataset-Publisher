@@ -57,10 +57,39 @@ src/
 ├── lib/                  # Utility functions and services
 │   ├── db/               # Database models and connection
 │   ├── services/         # Business logic services
-│   │   └── ai/           # AI services for metadata generation
+│   │   ├── ai/           # AI services for metadata generation
+│   │   └── storage/      # File storage services
 │   └── utils.ts          # Utility functions
 └── types/                # TypeScript type definitions
 ```
+
+## File Storage Implementation
+
+The platform uses a local file system storage approach for storing uploaded dataset files:
+
+### Storage Structure
+
+- Files are stored in the `uploads` directory at the project root
+- Each dataset has its own subdirectory named with the dataset ID
+- Original filenames are preserved (with sanitization for security)
+- File paths are stored in the database for reference
+
+### Setup
+
+The uploads directory is automatically created when you run:
+
+```bash
+npm run setup-uploads
+```
+
+This script is also run automatically during `npm install` via the postinstall hook.
+
+### Implementation Details
+
+- **File Upload**: Files are uploaded via the `/api/upload` endpoint and saved to the file system
+- **File Retrieval**: Files are retrieved for preview and metadata generation
+- **AI Processing**: File content is read and provided to the AI service for metadata generation
+- **Error Handling**: Robust error handling for file operations with fallbacks
 
 ## Learn More
 

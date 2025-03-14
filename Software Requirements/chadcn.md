@@ -1,0 +1,1 @@
+Visit https://ui.shadcn.com/docs/installation/next for Chadcn Doc
