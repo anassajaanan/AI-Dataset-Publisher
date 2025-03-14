@@ -79,7 +79,9 @@ async function getDataset(id: string) {
 }
 
 export default async function DatasetPage({ params }: DatasetPageProps) {
-  const { id } = params;
+  // Await the params object before accessing its properties
+  const resolvedParams = await Promise.resolve(params);
+  const id = resolvedParams.id;
   
   if (!id) {
     notFound();

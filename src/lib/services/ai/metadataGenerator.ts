@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { FileStats } from '@/components/upload/FileUpload';
+import { FileStats } from '@/lib/services/fileProcessingService';
 
 export type GeneratedMetadata = {
   title: string;

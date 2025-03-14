@@ -126,7 +126,13 @@ export async function getFileContent(filePath: string): Promise<string> {
 export async function getFileArrayBuffer(filePath: string): Promise<ArrayBuffer> {
   try {
     const buffer = await readFile(filePath);
-    return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    // Create a new ArrayBuffer from the buffer to ensure type compatibility
+    const arrayBuffer = new ArrayBuffer(buffer.length);
+    const view = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < buffer.length; i++) {
+      view[i] = buffer[i];
+    }
+    return arrayBuffer;
   } catch (error) {
     console.error('Error getting file array buffer:', error);
     throw new FileStorageError(`Failed to get file array buffer: ${error instanceof Error ? error.message : 'Unknown error'}`);
