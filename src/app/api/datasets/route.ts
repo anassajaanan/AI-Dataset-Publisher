@@ -53,9 +53,15 @@ export async function GET(request: NextRequest) {
         })
         .map(dataset => {
           const latestVersion = latestVersionMap.get(dataset._id.toString());
+          
+          // Transform MongoDB _id to id for the client
           return {
             ...dataset,
-            versions: latestVersion ? [latestVersion] : []
+            id: dataset._id.toString(), // Add id property that's a string
+            versions: latestVersion ? [{
+              ...latestVersion,
+              id: latestVersion._id.toString() // Add id property to version
+            }] : []
           };
         });
     } else {
@@ -82,10 +88,18 @@ export async function GET(request: NextRequest) {
       // Add versions to datasets
       datasets = datasets.map(dataset => {
         const latestVersion = latestVersionMap.get(dataset._id.toString());
-        return {
+        
+        // Transform MongoDB _id to id for the client
+        const transformedDataset = {
           ...dataset,
-          versions: latestVersion ? [latestVersion] : []
+          id: dataset._id.toString(), // Add id property that's a string
+          versions: latestVersion ? [{
+            ...latestVersion,
+            id: latestVersion._id.toString() // Add id property to version
+          }] : []
         };
+        
+        return transformedDataset;
       });
     }
     

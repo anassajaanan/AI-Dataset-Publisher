@@ -17,14 +17,16 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type DatasetVersion = {
-  id: string;
+  _id?: string;
+  id?: string;
   versionNumber: number;
   status: string;
   createdAt: string;
 };
 
 type Dataset = {
-  id: string;
+  _id?: string;
+  id?: string;
   filename: string;
   rowCount: number;
   columns: string[];
@@ -55,6 +57,14 @@ export const DatasetList: React.FC = () => {
       }
       
       const response = await axios.get(`/api/datasets?${params.toString()}`);
+      
+      // Log the dataset IDs for debugging
+      console.log('Datasets received:', response.data.datasets.map(d => ({ 
+        _id: d._id, 
+        id: d.id,
+        filename: d.filename
+      })));
+      
       setDatasets(response.data.datasets);
     } catch (error) {
       console.error('Error fetching datasets:', error);
@@ -69,7 +79,18 @@ export const DatasetList: React.FC = () => {
       setDeletingId(datasetId);
       setDeleteError(null);
       
-      await axios.delete(`/api/datasets/${datasetId}`);
+      // Ensure we have a valid ID
+      if (!datasetId) {
+        setDeleteError('Invalid dataset ID');
+        return;
+      }
+      
+      // Log the dataset ID being deleted
+      console.log('Deleting dataset with ID:', datasetId);
+      
+      // Make the delete request
+      const response = await axios.delete(`/api/datasets/${datasetId}`);
+      console.log('Delete response:', response.data);
       
       // Refresh the dataset list
       fetchDatasets();
@@ -231,9 +252,11 @@ export const DatasetList: React.FC = () => {
               {datasets.map((dataset) => {
                 const latestVersion = dataset.versions[0];
                 const isDraft = latestVersion?.status === 'draft';
+                // Use _id if available, otherwise fall back to id
+                const datasetId = dataset._id || dataset.id;
                 
                 return (
-                  <tr key={dataset.id} className="text-sm text-gray-700 hover:bg-gray-50">
+                  <tr key={datasetId} className="text-sm text-gray-700 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium">{dataset.filename}</td>
                     <td className="px-4 py-3">{dataset.rowCount.toLocaleString()}</td>
                     <td className="px-4 py-3">{dataset.columns.length}</td>
@@ -249,7 +272,7 @@ export const DatasetList: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <Link
-                          href={`/datasets/${dataset.id}`}
+                          href={`/datasets/${datasetId}`}
                           className="text-primary hover:underline"
                         >
                           View
@@ -257,7 +280,7 @@ export const DatasetList: React.FC = () => {
                         {isDraft && (
                           <>
                             <Link
-                              href={`/datasets/${dataset.id}/edit`}
+                              href={`/datasets/${datasetId}/edit`}
                               className="text-primary hover:underline"
                             >
                               Edit
@@ -279,10 +302,10 @@ export const DatasetList: React.FC = () => {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => deleteDataset(dataset.id)}
+                                    onClick={() => deleteDataset(datasetId)}
                                     className="bg-red-600 hover:bg-red-700"
                                   >
-                                    {deletingId === dataset.id ? 'Deleting...' : 'Delete'}
+                                    {deletingId === datasetId ? 'Deleting...' : 'Delete'}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>

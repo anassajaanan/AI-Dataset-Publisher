@@ -71,7 +71,15 @@ export async function DELETE(
     // Connect to MongoDB
     await connectToDatabase();
     
+    // Ensure params.id is a string
     const datasetId = params.id;
+    
+    if (!datasetId || !mongoose.Types.ObjectId.isValid(datasetId)) {
+      return NextResponse.json(
+        { message: 'Invalid dataset ID format' },
+        { status: 400 }
+      );
+    }
     
     // Import models
     const { DatasetVersion, DatasetMetadata } = await import('@/lib/db/models');
