@@ -37,47 +37,66 @@ interface DatasetPageProps {
   };
 }
 
+interface DatasetVersion {
+  _id: string;
+  versionNumber: number;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  createdAt: string;
+  comments?: string;
+}
+
+interface DatasetType {
+  _id: string;
+  filename: string;
+  fileSize: number;
+  rowCount: number;
+  columns: string[];
+  versions: DatasetVersion[]; // Always an array
+  metadata?: {
+    title: string;
+    titleArabic?: string;
+    description: string;
+    descriptionArabic?: string;
+    keywords: string[];
+    keywordsArabic?: string[];
+    category: string;
+    categoryArabic?: string;
+    language: 'en' | 'ar' | 'both';
+  };
+  createdAt: string;
+}
+
 export default function DatasetPage({ params }: DatasetPageProps) {
   const [activeTab, setActiveTab] = useState<'english' | 'arabic'>('english');
+  
+  // Unwrap params promise using React.use()
+  const { id: datasetId } = React.use(params);
   
   // Fetch dataset data
   const [dataset, setDataset] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Extract id from params to use in the dependency array
-  const datasetId = params.id;
-  
   useEffect(() => {
     const fetchData = async () => {
       try {
-        if (!datasetId) {
-          throw new Error('Dataset ID is required');
-        }
-        
         const response = await fetch(`/api/datasets/${datasetId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch dataset');
-        }
+        if (!response.ok) throw new Error('Failed to fetch dataset');
         
-        const data = await response.json();
-        setDataset(data);
+        const { dataset } = await response.json();
         
-        // Set initial activeTab based on metadata language
-        if (data.metadata && data.metadata.language) {
-          if (data.metadata.language === 'ar') {
-            setActiveTab('arabic');
-          } else {
-            setActiveTab('english');
-          }
+        if (!dataset) throw new Error('Dataset not found');
+        if (!dataset.versions || dataset.versions.length === 0) {
+          throw new Error('Dataset has no versions');
         }
-      } catch (err: any) {
-        setError(err.message || 'An error occurred');
+
+        setDataset(dataset);
+      } catch (err) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-    
     fetchData();
   }, [datasetId]);
   
@@ -109,7 +128,23 @@ export default function DatasetPage({ params }: DatasetPageProps) {
     );
   }
   
-  const latestVersion = dataset.versions[0];
+  // Get latest version safely
+  const latestVersion = dataset?.versions?.reduce((latest, current) => 
+    current.versionNumber > latest.versionNumber ? current : latest, 
+    { versionNumber: -1 } as DatasetVersion
+  );
+  
+  // Fallback UI for missing versions
+  if (dataset && (!dataset.versions || dataset.versions.length === 0)) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Invalid Dataset</AlertTitle>
+        <AlertDescription>This dataset has no valid versions</AlertDescription>
+      </Alert>
+    );
+  }
+  
   const metadata = dataset.metadata;
   
   // Map metadata properties to UI-friendly format if metadata exists

@@ -8,6 +8,7 @@ export interface IDataset extends Document {
   columns: string[];
   createdAt: Date;
   updatedAt: Date;
+  versions: mongoose.Types.ObjectId[];
 }
 
 // Dataset Version interface
@@ -46,6 +47,15 @@ const DatasetSchema = new Schema<IDataset>(
     fileSize: { type: Number, required: true },
     rowCount: { type: Number, required: true },
     columns: { type: [String], required: true },
+    versions: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'DatasetVersion',
+      required: true,
+      validate: {
+        validator: (v: any[]) => Array.isArray(v) && v.length > 0,
+        message: 'Dataset must have at least one version'
+      }
+    }]
   },
   { timestamps: true }
 );
@@ -54,7 +64,7 @@ const DatasetSchema = new Schema<IDataset>(
 const DatasetVersionSchema = new Schema<IDatasetVersion>(
   {
     datasetId: { type: Schema.Types.ObjectId, ref: 'Dataset', required: true },
-    versionNumber: { type: Number, required: true },
+    versionNumber: { type: Number, required: true, min: 1 },
     filePath: { type: String, required: true },
     status: { 
       type: String, 
