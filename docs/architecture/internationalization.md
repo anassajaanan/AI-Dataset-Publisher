@@ -21,6 +21,49 @@ The platform uses the following technologies for internationalization:
 - **React Context API**: For storing and accessing the current locale
 - **CSS Modules**: For RTL-aware styling
 - **Intl API**: For date, number, and currency formatting
+- **Tailwind CSS**: For RTL-responsive layouts with dir attributes
+
+## Bilingual Metadata Support
+
+The platform provides comprehensive support for bilingual metadata in datasets:
+
+### Database Schema
+
+The `DatasetMetadata` model includes fields for both English and Arabic content:
+
+```typescript
+interface IDatasetMetadata {
+  title?: string;              // English title
+  titleArabic?: string;        // Arabic title
+  description?: string;        // English description
+  descriptionArabic?: string;  // Arabic description
+  keywords: string[];          // English tags/keywords
+  keywordsArabic?: string[];   // Arabic tags/keywords
+  category: string;            // English category
+  categoryArabic?: string;     // Arabic category
+  language: 'en' | 'ar' | 'both'; // Metadata language mode
+}
+```
+
+### Language Modes
+
+The platform supports three language modes for metadata:
+
+1. **English Only (en)**: Only English fields are required
+2. **Arabic Only (ar)**: Only Arabic fields are required (can be stored in either primary or Arabic-specific fields)
+3. **Bilingual (both)**: Both English and Arabic fields are required
+
+### UI Components
+
+The dataset detail page includes a language toggle for switching between English and Arabic metadata display when bilingual content is available. The UI automatically adjusts layout direction (LTR/RTL) based on the selected language.
+
+### Validation
+
+The platform includes robust validation for different language scenarios:
+
+- For English-only metadata: Validates English fields
+- For Arabic-only metadata: Validates Arabic fields (which can be stored in either primary or Arabic-specific fields)
+- For bilingual metadata: Validates both English and Arabic fields
 
 ## Translation Management
 
@@ -261,33 +304,24 @@ class MyDocument extends Document {
 export default MyDocument;
 ```
 
-### RTL-Aware Styling
+### Component-Level RTL Support
 
-The platform uses CSS variables and logical properties for RTL-aware styling:
+For components that need to display content in both LTR and RTL directions (such as the dataset detail page), we use the `dir` attribute to control text direction:
 
-```css
-/* Example of RTL-aware CSS */
-:root {
-  --start: left;
-  --end: right;
-}
+```tsx
+{/* Arabic Metadata */}
+{(metadata.language === 'ar' || (metadata.language === 'both' && activeTab === 'arabic')) && (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir="rtl">
+    {/* Arabic content */}
+  </div>
+)}
 
-[dir="rtl"] {
-  --start: right;
-  --end: left;
-}
-
-.sidebar {
-  position: absolute;
-  inset-inline-start: 0; /* Uses logical property */
-  padding-inline-start: 1rem; /* Uses logical property */
-  margin-inline-end: 2rem; /* Uses logical property */
-  border-inline-end: 1px solid #ccc; /* Uses logical property */
-}
-
-.icon {
-  margin-inline-end: 0.5rem; /* Uses logical property */
-}
+{/* English Metadata */}
+{(metadata.language === 'en' || (metadata.language === 'both' && activeTab === 'english')) && (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {/* English content */}
+  </div>
+)}
 ```
 
 ## Date and Number Formatting
@@ -452,3 +486,14 @@ Planned enhancements for the internationalization system include:
 - Language detection based on user preferences
 - Improved translation management workflow
 - Performance optimizations for translation loading 
+
+## Recent Enhancements
+
+### March 2024 Updates
+
+- Added comprehensive bilingual support for dataset metadata
+- Implemented language toggle in dataset detail page
+- Enhanced RTL formatting for Arabic content display
+- Updated database models to properly handle multilingual content
+- Added validation for different language scenarios
+- Improved error handling for language-specific operations 

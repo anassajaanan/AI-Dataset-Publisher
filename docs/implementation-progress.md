@@ -31,20 +31,30 @@ This document tracks the implementation progress of the Dataset Publishing Platf
 
 ## Recent Enhancements
 
-### Improved Language Support (March 2024)
+### Comprehensive Bilingual Support (March 2024) ✅
+
+- Implemented full bilingual support for dataset metadata (English and Arabic)
+- Added language toggle in dataset detail page UI
+- Enhanced RTL formatting for Arabic content display
+- Updated database models to properly handle multilingual content
+- Added validation for different language scenarios in metadata
+- Created new DatasetActions component for consistent dataset management
+- Improved error handling and user feedback for language-specific operations
+
+### Improved Language Support (March 2024) ✅
 
 - Enhanced the MetadataEditor component to better handle different language options
 - Added proper RTL formatting for Arabic content
 - Improved UI for displaying bilingual metadata
 - Updated the metadata generation API to properly handle language parameters
 
-### TypeScript Improvements (March 2024)
+### TypeScript Improvements (March 2024) ✅
 
 - Fixed TypeScript errors in various components
 - Added proper type definitions for API responses
 - Improved type safety in route handlers
 
-### UI/UX Enhancements (March 2024)
+### UI/UX Enhancements (March 2024) ✅
 
 - Improved the metadata editor interface
 - Enhanced the dataset detail page
