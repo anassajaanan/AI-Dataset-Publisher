@@ -29,6 +29,7 @@ import {
   CircleX,
   ListFilter,
   Upload,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,15 +111,55 @@ export const DatasetTable: React.FC = () => {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [activeStatus, setActiveStatus] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchDatasets = useCallback(async (status?: string) => {
+  // Debounce search input to avoid too many API calls
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Fetch datasets when search query or status changes
+  useEffect(() => {
+    fetchDatasets(activeStatus, debouncedSearchQuery);
+  }, [debouncedSearchQuery, activeStatus]);
+
+  const fetchDatasets = useCallback(async (status?: string, search?: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      // Add status parameter to the API call if provided
-      const url = status ? `/api/datasets?status=${status}` : '/api/datasets';
+      // Build the URL with query parameters
+      let url = '/api/datasets';
+      const params = new URLSearchParams();
+      
+      if (status) {
+        params.append('status', status);
+      }
+      
+      if (search && search.trim() !== '') {
+        params.append('search', search.trim());
+      }
+      
+      // Add params to URL if any exist
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
       const response = await axios.get(url);
       
       // Transform the data to ensure status is accessible
@@ -141,14 +182,27 @@ export const DatasetTable: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchDatasets();
-  }, [fetchDatasets]);
-
   // Function to filter datasets based on status
   const filterDatasetsByStatus = (status: string | undefined) => {
     setActiveStatus(status);
-    fetchDatasets(status);
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    
+    // Clear the table's column filter since we're using server-side search
+    if (table.getColumn("filename")) {
+      table.getColumn("filename")?.setFilterValue("");
+    }
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery('');
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -285,7 +339,7 @@ export const DatasetTable: React.FC = () => {
             datasetId={datasetId} 
             filename={dataset.filename}
             status={status}
-            onDelete={() => fetchDatasets(activeStatus)}
+            onDelete={() => fetchDatasets(activeStatus, debouncedSearchQuery)}
             variant="dropdown"
           />
         );
@@ -322,23 +376,18 @@ export const DatasetTable: React.FC = () => {
               ref={inputRef}
               placeholder="Search datasets..."
               className="min-w-60 ps-9"
-              value={(table.getColumn("filename")?.getFilterValue() as string) ?? ""}
-              onChange={(e) => table.getColumn("filename")?.setFilterValue(e.target.value)}
-              aria-label="Filter by filename"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              aria-label="Search datasets"
             />
             <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground/80">
-              <ListFilter size={16} strokeWidth={2} aria-hidden="true" />
+              <Search size={16} strokeWidth={2} aria-hidden="true" />
             </div>
-            {Boolean(table.getColumn("filename")?.getFilterValue()) && (
+            {Boolean(searchQuery) && (
               <button
                 className="absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-lg text-muted-foreground/80 hover:text-foreground"
-                aria-label="Clear filter"
-                onClick={() => {
-                  table.getColumn("filename")?.setFilterValue("");
-                  if (inputRef.current) {
-                    inputRef.current.focus();
-                  }
-                }}
+                aria-label="Clear search"
+                onClick={clearSearch}
               >
                 <CircleX size={16} strokeWidth={2} aria-hidden="true" />
               </button>
@@ -506,9 +555,15 @@ export const DatasetTable: React.FC = () => {
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center space-y-4">
-                    <p className="text-muted-foreground">
-                      No datasets found. Start by uploading a dataset.
-                    </p>
+                    {searchQuery ? (
+                      <p className="text-muted-foreground">
+                        No datasets found matching "{searchQuery}". Try a different search term.
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        No datasets found. Start by uploading a dataset.
+                      </p>
+                    )}
                     <Button asChild>
                       <Link href="/upload">
                         <Upload className="-ms-1 me-2" size={16} strokeWidth={2} aria-hidden="true" />
