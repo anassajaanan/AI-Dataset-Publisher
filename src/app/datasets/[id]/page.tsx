@@ -148,7 +148,22 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   
   const metadata = dataset.metadata;
   
-  // Map metadata properties to UI-friendly format if metadata exists
+  // First, add a function to get keyword badge colors
+  const getKeywordBadgeColor = (index: number) => {
+    const colors = [
+      'bg-blue-50 text-blue-600 border-blue-100',
+      'bg-purple-50 text-purple-600 border-purple-100',
+      'bg-pink-50 text-pink-600 border-pink-100',
+      'bg-indigo-50 text-indigo-600 border-indigo-100',
+      'bg-emerald-50 text-emerald-600 border-emerald-100',
+      'bg-amber-50 text-amber-600 border-amber-100',
+      'bg-cyan-50 text-cyan-600 border-cyan-100',
+      'bg-rose-50 text-rose-600 border-rose-100',
+    ];
+    return colors[index % colors.length];
+  };
+  
+  // Modify the metadataItems array to handle keywords differently
   const metadataItems = dataset?.metadata ? [
     {
       icon: <FileText className="h-4 w-4" />,
@@ -171,8 +186,9 @@ export default function DatasetPage({ params }: DatasetPageProps) {
     {
       icon: <Database className="h-4 w-4" />,
       label: 'Keywords',
-      value: dataset.metadata.keywords.join(', '),
-      valueArabic: dataset.metadata.keywordsArabic?.join(', ')
+      value: dataset.metadata.keywords,
+      valueArabic: dataset.metadata.keywordsArabic,
+      isKeywords: true
     }
   ] : [];
   
@@ -232,17 +248,16 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center mb-2">
-          <Button variant="ghost" size="sm" asChild className="gap-1 pl-0 hover:pl-1 transition-all">
-            <Link href="/dashboard">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
-          </Button>
-        </div>
-        
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Button variant="ghost" size="sm" asChild className="gap-1 pl-0 hover:pl-1 transition-all -ml-2">
+                <Link href="/dashboard">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Dashboard
+                </Link>
+              </Button>
+            </div>
             <h1 className="text-3xl font-bold tracking-tight mb-2">{dataset.filename}</h1>
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant={getStatusVariant(latestVersion.status)} className="flex items-center gap-1">
@@ -287,7 +302,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
         </div>
         
         {!metadata && (
-          <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+          <Alert className="bg-amber-50 border-amber-200 text-amber-800 mb-6">
             <Info className="h-4 w-4 text-amber-800" />
             <AlertTitle>Metadata Required</AlertTitle>
             <AlertDescription>
@@ -297,79 +312,97 @@ export default function DatasetPage({ params }: DatasetPageProps) {
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <Card className="md:col-span-4">
-            <CardHeader className="pb-3">
+          <Card className="md:col-span-4 border border-muted/60 shadow-sm overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500/80 to-blue-400/40"></div>
+            <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
+                <div className="p-1.5 rounded-md bg-blue-500/10">
+                  <FileText className="h-5 w-5 text-blue-500" />
+                </div>
                 <CardTitle>File Information</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">Filename</p>
+                  <p className="text-sm text-muted-foreground mb-1">Filename</p>
                   <p className="font-medium truncate">{dataset.filename}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Size</p>
+                  <p className="text-sm text-muted-foreground mb-1">Size</p>
                   <p className="font-medium">{formatFileSize(dataset.fileSize)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Rows</p>
+                  <p className="text-sm text-muted-foreground mb-1">Rows</p>
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{dataset.rowCount.toLocaleString()}</p>
                     <BarChart2 className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Columns</p>
+                  <p className="text-sm text-muted-foreground mb-1">Columns</p>
                   <p className="font-medium">{dataset.columns.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="md:col-span-8">
-            <CardHeader className="pb-3">
+          <Card className="md:col-span-8 border border-muted/60 shadow-sm overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/80 to-emerald-400/40"></div>
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Database className="h-5 w-5 text-primary" />
+                  <div className="p-1.5 rounded-md bg-emerald-500/10">
+                    <Database className="h-5 w-5 text-emerald-500" />
+                  </div>
                   <CardTitle>Columns</CardTitle>
                 </div>
-                <Badge variant="outline" className="bg-primary/5">
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                   {dataset.columns.length} total
                 </Badge>
               </div>
-              <CardDescription>
+              <CardDescription className="mt-1">
                 The dataset contains the following columns
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {columnChunks.map((chunk, chunkIndex) => (
-                  <div key={chunkIndex} className="space-y-2">
-                    {chunk.map((column: string, index: number) => (
-                      <div 
-                        key={index}
-                        className="px-3 py-2 rounded-md bg-primary/5 text-sm font-medium truncate"
-                        title={column}
-                      >
-                        {column}
-                      </div>
-                    ))}
-                  </div>
-                ))}
+              <div className="border rounded-md overflow-hidden">
+                <div className="max-h-[400px] overflow-y-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-50 border-b">
+                        <th className="w-12 px-4 py-2 text-left text-xs font-medium text-muted-foreground">#</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Column Name</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dataset.columns.map((column: string, index: number) => (
+                        <tr key={index} className="hover:bg-slate-50 transition-colors">
+                          <td className="w-12 px-4 py-2 border-b border-slate-100 text-xs text-muted-foreground font-medium">
+                            {index + 1}
+                          </td>
+                          <td className="px-4 py-2 border-b border-slate-100 text-sm font-medium">
+                            {column}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
         
         {metadata ? (
-          <Card>
-            <CardHeader>
+          <Card className="border border-muted/60 shadow-sm overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 to-primary/40"></div>
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Tag className="h-5 w-5 text-primary" />
+                  <div className="p-1.5 rounded-md bg-primary/10">
+                    <Tag className="h-5 w-5 text-primary" />
+                  </div>
                   <CardTitle>Metadata</CardTitle>
                 </div>
                 {metadata.language === 'both' && (
@@ -377,7 +410,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className={`relative px-4 py-2 rounded-none ${activeTab === 'english' ? 'bg-primary/10 text-primary' : ''}`}
+                      className={`relative px-4 py-1.5 rounded-none ${activeTab === 'english' ? 'bg-primary/10 text-primary font-medium' : ''}`}
                       onClick={() => setActiveTab('english')}
                     >
                       English
@@ -386,7 +419,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className={`relative px-4 py-2 rounded-none ${activeTab === 'arabic' ? 'bg-primary/10 text-primary' : ''}`}
+                      className={`relative px-4 py-1.5 rounded-none ${activeTab === 'arabic' ? 'bg-primary/10 text-primary font-medium' : ''}`}
                       onClick={() => setActiveTab('arabic')}
                     >
                       <Globe className="h-4 w-4 mr-2" />
@@ -397,16 +430,33 @@ export default function DatasetPage({ params }: DatasetPageProps) {
               </div>
             </CardHeader>
             
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
               {/* English Metadata */}
               {(metadata.language === 'en' || (metadata.language === 'both' && activeTab === 'english')) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {metadataItems.map((item, index) => (
-                    <div key={index} className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">{item.label}</h3>
-                        <p className="text-lg font-medium">{item.value}</p>
-                      </div>
+                    <div key={index} className={`${item.isKeywords ? 'md:col-span-2' : ''}`}>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                        <div className="p-1 rounded-full bg-primary/5">
+                          {item.icon}
+                        </div>
+                        {item.label}
+                      </h3>
+                      {item.isKeywords ? (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {item.value.map((keyword: string, idx: number) => (
+                            <Badge 
+                              key={idx} 
+                              variant="outline" 
+                              className={`${getKeywordBadgeColor(idx)} text-xs px-2.5 py-0.5 rounded-full font-normal hover:shadow-sm transition-shadow`}
+                            >
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-base">{item.value}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -414,20 +464,38 @@ export default function DatasetPage({ params }: DatasetPageProps) {
               
               {/* Arabic Metadata */}
               {(metadata.language === 'ar' || (metadata.language === 'both' && activeTab === 'arabic')) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir="rtl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4" dir="rtl">
                   {metadataItems.map((item, index) => (
-                    <div key={index} className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">{item.label}</h3>
-                        <p className="text-lg font-medium">{item.valueArabic || item.value}</p>
-                      </div>
+                    <div key={index} className={`${item.isKeywords ? 'md:col-span-2' : ''}`}>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                        <div className="p-1 rounded-full bg-primary/5">
+                          {item.icon}
+                        </div>
+                        {item.label}
+                      </h3>
+                      {item.isKeywords ? (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {(item.valueArabic || item.value).map((keyword: string, idx: number) => (
+                            <Badge 
+                              key={idx} 
+                              variant="outline" 
+                              className={`${getKeywordBadgeColor(idx)} text-xs px-2.5 py-0.5 rounded-full font-normal hover:shadow-sm transition-shadow`}
+                            >
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-base">{item.valueArabic || item.value}</p>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </CardContent>
-            <CardFooter className="border-t pt-4 flex justify-end">
-              <Button variant="outline" size="sm" asChild>
+            <Separator className="my-0" />
+            <CardFooter className="pt-3 pb-3 flex justify-end">
+              <Button variant="outline" size="sm" asChild className="shadow-sm">
                 <Link href={`/datasets/${dataset._id}/metadata`}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit Metadata
@@ -436,11 +504,11 @@ export default function DatasetPage({ params }: DatasetPageProps) {
             </CardFooter>
           </Card>
         ) : (
-          <Card className="border-2 border-dashed border-primary/20">
-            <CardContent className="pt-8 pb-8 flex flex-col items-center justify-center text-center">
-              <Tag className="h-12 w-12 text-primary/60 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Metadata Available</h3>
-              <p className="text-muted-foreground mb-6 max-w-md">
+          <Card className="border-2 border-dashed border-primary/20 bg-primary/[0.03]">
+            <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center text-center">
+              <Tag className="h-10 w-10 text-primary/60 mb-3" />
+              <h3 className="text-xl font-semibold mb-1.5">No Metadata Available</h3>
+              <p className="text-muted-foreground mb-4 max-w-md">
                 Metadata helps users discover and understand your dataset. Add metadata to improve visibility and usability.
               </p>
               <Button asChild size="lg" className="shadow-sm">
@@ -453,10 +521,13 @@ export default function DatasetPage({ params }: DatasetPageProps) {
           </Card>
         )}
         
-        <Card className="mt-6">
+        <Card className="mt-6 border border-muted/60 shadow-sm overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500/80 to-indigo-400/40"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
+              <div className="p-1.5 rounded-md bg-indigo-500/10">
+                <Calendar className="h-5 w-5 text-indigo-500" />
+              </div>
               <CardTitle>Version History</CardTitle>
             </div>
             {latestVersion && latestVersion.status === 'draft' && (
@@ -483,29 +554,29 @@ export default function DatasetPage({ params }: DatasetPageProps) {
               />
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Version</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Comments</th>
+                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Version</th>
+                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Date</th>
+                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Comments</th>
                   </tr>
                 </thead>
                 <tbody>
                   {dataset.versions.map((version: any) => (
                     <tr key={version._id ? version._id.toString() : `version-${version.versionNumber}`} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-4">{version.versionNumber}</td>
-                      <td className="py-3 px-4">{formatDate(version.createdAt)}</td>
-                      <td className="py-3 px-4">
+                      <td className="py-2.5 px-4 font-medium">{version.versionNumber}</td>
+                      <td className="py-2.5 px-4">{formatDate(version.createdAt)}</td>
+                      <td className="py-2.5 px-4">
                         <Badge variant={getStatusVariant(version.status)} className="flex items-center gap-1 w-fit">
                           {getStatusIcon(version.status)}
                           {getStatusLabel(version.status)}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4">{version.comments || '-'}</td>
+                      <td className="py-2.5 px-4">{version.comments || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
