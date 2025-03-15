@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Link from "next/link";
 import { Toaster } from "@/components/ui/sonner";
 import { MainNavigation } from "@/components/ui/main-navigation";
 
@@ -30,18 +29,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <header className="h-16 sm:h-20 flex items-center justify-between border-b">
-          <div className="container mx-auto px-4 flex items-center justify-between">
-            <Link href="/" className="text-xl font-bold">
-              Dataset Publishing Platform
-            </Link>
-          </div>
-        </header>
-        
         {/* TubeLight NavBar */}
         <MainNavigation />
         
-        <main className="flex-1 pt-8">
+        <main className="flex-1 pt-16 sm:pt-20">
           {children}
         </main>
         
