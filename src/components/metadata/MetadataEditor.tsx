@@ -17,6 +17,7 @@ import { ChatAvatar } from '@/components/ui/chat';
 import { ChatBubble } from '@/components/ui/chat';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
+import { LanguageSelector } from './LanguageSelector';
 
 interface MetadataEditorProps {
   datasetId: string;
@@ -315,41 +316,40 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
     switch (step) {
       case 'initial':
         return (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="flex flex-col items-center justify-center py-8 text-center">
             <Sparkles className="h-12 w-12 text-primary mb-4" />
             <h3 className="text-xl font-semibold mb-2">Generate Metadata with AI</h3>
             <p className="text-muted-foreground mb-6 max-w-md">
               Our AI will analyze your dataset and generate metadata suggestions based on its contents.
             </p>
-            <div className="flex gap-4 items-center mb-6">
-              <select
-                className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as 'en' | 'ar' | 'both')}
+            
+            <div className="w-full max-w-xl mb-6">
+              <h4 className="text-sm font-medium mb-3 text-left">Select Language Option:</h4>
+              <LanguageSelector 
+                value={language} 
+                onChange={(value) => setLanguage(value)} 
                 disabled={generating}
-              >
-                <option value="en">English Only</option>
-                <option value="ar">Arabic Only</option>
-                <option value="both">Bilingual</option>
-              </select>
-              <Button 
-                onClick={generateMetadata} 
-                disabled={generating}
-                className="gap-2"
-              >
-                {generating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Generate with AI
-                  </>
-                )}
-              </Button>
+              />
             </div>
+            
+            <Button 
+              onClick={generateMetadata} 
+              disabled={generating}
+              className="gap-2"
+              size="lg"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Generate with AI
+                </>
+              )}
+            </Button>
           </div>
         );
       

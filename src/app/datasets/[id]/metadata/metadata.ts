@@ -1,4 +1,4 @@
 export const metadata = {
-  title: 'Edit Metadata - Dataset Publishing Platform',
-  description: 'Edit and generate metadata for your dataset',
+  title: 'Dataset Metadata - AI-Powered Generation',
+  description: 'Generate and edit metadata for your dataset using AI assistance in English, Arabic, or bilingual formats',
 };
