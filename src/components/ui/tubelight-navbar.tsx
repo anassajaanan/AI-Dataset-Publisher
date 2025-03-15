@@ -20,21 +20,43 @@ interface NavBarProps {
 export function NavBar({ items, className }: NavBarProps) {
   const [activeTab, setActiveTab] = useState(items[0].name)
   const [isMobile, setIsMobile] = useState(false)
+  const [visible, setVisible] = useState(true)
+  const [lastScrollY, setLastScrollY] = useState(0)
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
     }
 
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      
+      // Show navbar when at the top of the page
+      if (currentScrollY <= 10) {
+        setVisible(true)
+      } else {
+        // Hide when scrolling down, show when scrolling up
+        setVisible(currentScrollY < lastScrollY)
+      }
+      
+      setLastScrollY(currentScrollY)
+    }
+
     handleResize()
     window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+    window.addEventListener("scroll", handleScroll)
+    
+    return () => {
+      window.removeEventListener("resize", handleResize)
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [lastScrollY])
 
   return (
     <div
       className={cn(
-        "fixed top-4 right-4 z-50",
+        "fixed top-4 right-4 z-50 transition-transform duration-300",
+        !visible && "-translate-y-24",
         className,
       )}
     >
