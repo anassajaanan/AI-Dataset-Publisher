@@ -21,14 +21,14 @@ export async function GET(
       );
     }
     
-    // Get the ID from params - properly await the params object
+    // Get dataset ID from params - await the params object
     const params = await context.params;
-    const datasetId = params.id;
+    const id = params.id;
     const searchParams = request.nextUrl.searchParams;
     const maxRows = parseInt(searchParams.get('rows') || '10', 10);
     
     // Get dataset info from database
-    const dataset = await Dataset.findById(datasetId);
+    const dataset = await Dataset.findById(id);
     
     if (!dataset) {
       return NextResponse.json(
@@ -38,7 +38,7 @@ export async function GET(
     }
     
     // Get the latest version to find the file path
-    const latestVersion = await DatasetVersion.findOne({ datasetId: dataset._id })
+    const latestVersion = await DatasetVersion.findOne({ datasetId: id })
       .sort({ versionNumber: -1 })
       .limit(1);
     

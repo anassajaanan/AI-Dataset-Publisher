@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import { DatasetActions } from './DatasetActions';
@@ -29,9 +29,8 @@ export const DatasetList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const fetchDatasets = async () => {
+  const fetchDatasets = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -60,11 +59,11 @@ export const DatasetList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, searchQuery]);
 
   useEffect(() => {
     fetchDatasets();
-  }, [statusFilter, searchQuery, fetchDatasets]);
+  }, [fetchDatasets]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -139,12 +138,6 @@ export const DatasetList: React.FC = () => {
           </select>
         </div>
       </div>
-      
-      {deleteError && (
-        <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md">
-          {deleteError}
-        </div>
-      )}
       
       {loading ? (
         <div className="text-center py-8">

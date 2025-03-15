@@ -28,8 +28,9 @@ export async function GET(
     // Connect to MongoDB
     await connectToDatabase();
     
-    // Get dataset ID from params
-    const { id } = context.params;
+    // Get dataset ID from params - await the params object
+    const params = await context.params;
+    const id = params.id;
     
     // Find the dataset
     const dataset = await Dataset.findById(id) as DatasetDocument;

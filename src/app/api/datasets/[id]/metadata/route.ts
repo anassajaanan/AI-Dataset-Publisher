@@ -16,8 +16,9 @@ export async function GET(
     // Connect to MongoDB
     await connectToDatabase();
     
-    // Properly handle params in Next.js App Router
-    const { id } = context.params;
+    // Get dataset ID from params - await the params object
+    const params = await context.params;
+    const id = params.id;
     const datasetId = id;
     
     // Find the latest metadata for this dataset
@@ -49,8 +50,9 @@ export async function PUT(
     // Connect to MongoDB
     await connectToDatabase();
     
-    // Properly handle params in Next.js App Router
-    const { id } = context.params;
+    // Get dataset ID from params - await the params object
+    const params = await context.params;
+    const id = params.id;
     const datasetId = id;
     
     // Parse request body

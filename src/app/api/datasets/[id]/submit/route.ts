@@ -37,8 +37,9 @@ export async function POST(
     // Connect to MongoDB
     await connectToDatabase();
     
-    // Get dataset ID from params
-    const { id } = context.params;
+    // Get dataset ID from params - await the params object
+    const params = await context.params;
+    const id = params.id;
     
     // Parse request body
     const body = await request.json();
