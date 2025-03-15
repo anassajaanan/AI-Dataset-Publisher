@@ -30,6 +30,7 @@ import {
   ListFilter,
   Upload,
   Search,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +101,7 @@ export const DatasetTable: React.FC = () => {
   const router = useRouter();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [sorting, setSorting] = useState<SortingState>([
     {
@@ -115,31 +117,61 @@ export const DatasetTable: React.FC = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Debounce search input to avoid too many API calls
+  // Debounce search input to avoid too many API calls - increased to 500ms for smoother experience
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     
+    // Show the search loading indicator immediately when typing
+    if (searchQuery !== debouncedSearchQuery) {
+      setSearchLoading(true);
+    }
+    
     searchTimeoutRef.current = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 300);
+    }, 500); // Increased debounce time for smoother experience
     
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Fetch datasets when search query or status changes
   useEffect(() => {
     fetchDatasets(activeStatus, debouncedSearchQuery);
   }, [debouncedSearchQuery, activeStatus]);
 
+  // Client-side filtering for immediate feedback while waiting for API
+  const getFilteredDatasets = useCallback(() => {
+    if (!searchQuery || searchQuery === debouncedSearchQuery) {
+      return datasets;
+    }
+    
+    // Simple client-side filtering for immediate feedback
+    return datasets.filter(dataset => 
+      dataset.filename.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [datasets, searchQuery, debouncedSearchQuery]);
+
   const fetchDatasets = useCallback(async (status?: string, search?: string) => {
-    setLoading(true);
+    // Cancel any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create a new abort controller for this request
+    abortControllerRef.current = new AbortController();
+    
+    // Only show full loading state on initial load, not during search
+    if (!searchLoading) {
+      setLoading(true);
+    }
+    
     setError(null);
     
     try {
@@ -160,7 +192,9 @@ export const DatasetTable: React.FC = () => {
         url += `?${params.toString()}`;
       }
       
-      const response = await axios.get(url);
+      const response = await axios.get(url, {
+        signal: abortControllerRef.current.signal
+      });
       
       // Transform the data to ensure status is accessible
       const transformedDatasets = response.data.datasets.map((dataset: any) => {
@@ -174,13 +208,17 @@ export const DatasetTable: React.FC = () => {
       });
       
       setDatasets(transformedDatasets);
-    } catch (error) {
-      console.error('Error fetching datasets:', error);
-      setError('Failed to load datasets. Please try again.');
+    } catch (error: any) {
+      // Don't set error if it was just an abort
+      if (error.name !== 'CanceledError' && error.name !== 'AbortError') {
+        console.error('Error fetching datasets:', error);
+        setError('Failed to load datasets. Please try again.');
+      }
     } finally {
       setLoading(false);
+      setSearchLoading(false);
     }
-  }, []);
+  }, [searchLoading]);
 
   // Function to filter datasets based on status
   const filterDatasetsByStatus = (status: string | undefined) => {
@@ -200,6 +238,7 @@ export const DatasetTable: React.FC = () => {
   // Clear search
   const clearSearch = () => {
     setSearchQuery('');
+    setSearchLoading(false);
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -347,8 +386,13 @@ export const DatasetTable: React.FC = () => {
     },
   ];
 
+  // Get filtered datasets for display
+  const displayDatasets = searchQuery !== debouncedSearchQuery 
+    ? getFilteredDatasets() 
+    : datasets;
+
   const table = useReactTable({
-    data: datasets,
+    data: displayDatasets,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -381,7 +425,11 @@ export const DatasetTable: React.FC = () => {
               aria-label="Search datasets"
             />
             <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground/80">
-              <Search size={16} strokeWidth={2} aria-hidden="true" />
+              {searchLoading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Search size={16} strokeWidth={2} aria-hidden="true" />
+              )}
             </div>
             {Boolean(searchQuery) && (
               <button
@@ -529,7 +577,7 @@ export const DatasetTable: React.FC = () => {
             ))}
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {loading && !searchLoading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
                   Loading datasets...
@@ -543,7 +591,11 @@ export const DatasetTable: React.FC = () => {
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow 
+                  key={row.id} 
+                  data-state={row.getIsSelected() && "selected"}
+                  className={searchLoading ? "opacity-60 transition-opacity" : ""}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
