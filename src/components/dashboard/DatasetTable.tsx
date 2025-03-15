@@ -70,6 +70,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { DatasetActions } from './DatasetActions';
+import { FiltersDemo } from '@/components/ui/filters-demo';
 
 type DatasetVersion = {
   _id?: string;
@@ -290,6 +291,9 @@ export const DatasetTable: React.FC = () => {
             )}
           </div>
           
+          {/* Advanced filters */}
+          <FiltersDemo />
+          
           {/* Toggle columns visibility */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -334,6 +338,50 @@ export const DatasetTable: React.FC = () => {
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Status filter chips */}
+      <div className="flex flex-wrap gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-7 text-xs"
+          onClick={() => table.getColumn("status")?.setFilterValue("draft")}
+        >
+          Draft
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-7 text-xs"
+          onClick={() => table.getColumn("status")?.setFilterValue("pending_review")}
+        >
+          Pending Review
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-7 text-xs"
+          onClick={() => table.getColumn("status")?.setFilterValue("approved")}
+        >
+          Approved
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-7 text-xs"
+          onClick={() => table.getColumn("status")?.setFilterValue("published")}
+        >
+          Published
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-7 text-xs"
+          onClick={() => table.getColumn("status")?.setFilterValue("rejected")}
+        >
+          Rejected
+        </Button>
       </div>
 
       {/* Table */}
