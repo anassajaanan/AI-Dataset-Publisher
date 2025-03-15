@@ -70,7 +70,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { DatasetActions } from './DatasetActions';
-import { FiltersDemo } from '@/components/ui/filters-demo';
 
 type DatasetVersion = {
   _id?: string;
@@ -104,14 +103,17 @@ export const DatasetTable: React.FC = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+  const [activeStatus, setActiveStatus] = useState<string | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const fetchDatasets = useCallback(async () => {
+  const fetchDatasets = useCallback(async (status?: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await axios.get('/api/datasets');
+      // Add status parameter to the API call if provided
+      const url = status ? `/api/datasets?status=${status}` : '/api/datasets';
+      const response = await axios.get(url);
       setDatasets(response.data.datasets);
     } catch (error) {
       console.error('Error fetching datasets:', error);
@@ -124,6 +126,12 @@ export const DatasetTable: React.FC = () => {
   useEffect(() => {
     fetchDatasets();
   }, [fetchDatasets]);
+
+  // Function to filter datasets based on status
+  const filterDatasetsByStatus = (status: string | undefined) => {
+    setActiveStatus(status);
+    fetchDatasets(status);
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -138,6 +146,8 @@ export const DatasetTable: React.FC = () => {
     switch (status) {
       case 'draft':
         return '';
+      case 'submitted':
+        return 'bg-blue-100 text-blue-800';
       case 'pending_review':
         return 'bg-yellow-100 text-yellow-800';
       case 'approved':
@@ -198,7 +208,7 @@ export const DatasetTable: React.FC = () => {
       header: "Version",
       cell: ({ row }) => {
         const versions = row.getValue<DatasetVersion[]>("versions");
-        return <div>{versions[0]?.versionNumber || 1}</div>;
+        return <div>{versions && versions.length > 0 ? versions[0]?.versionNumber || 1 : 1}</div>;
       },
     },
     {
@@ -212,11 +222,6 @@ export const DatasetTable: React.FC = () => {
             {getStatusLabel(status)}
           </Badge>
         );
-      },
-      filterFn: (row, id, filterValue) => {
-        const versions = row.original.versions;
-        const status = versions && versions.length > 0 ? versions[0]?.status || 'draft' : 'draft';
-        return status === filterValue;
       }
     },
     {
@@ -230,14 +235,14 @@ export const DatasetTable: React.FC = () => {
       cell: ({ row }) => {
         const dataset = row.original;
         const datasetId = (dataset._id || dataset.id || '').toString();
-        const latestVersion = dataset.versions[0];
+        const latestVersion = dataset.versions && dataset.versions.length > 0 ? dataset.versions[0] : undefined;
         
         return (
           <DatasetActions 
             datasetId={datasetId} 
             filename={dataset.filename}
             status={latestVersion?.status}
-            onDelete={fetchDatasets}
+            onDelete={() => fetchDatasets(activeStatus)}
           />
         );
       },
@@ -262,16 +267,6 @@ export const DatasetTable: React.FC = () => {
       rowSelection,
     },
   });
-
-  // Function to filter datasets based on status
-  const filterDatasetsByStatus = (status: string | undefined) => {
-    if (!status) {
-      table.resetColumnFilters();
-      return;
-    }
-    
-    table.getColumn("status")?.setFilterValue(status);
-  };
 
   return (
     <div className="space-y-4">
@@ -305,9 +300,6 @@ export const DatasetTable: React.FC = () => {
               </button>
             )}
           </div>
-          
-          {/* Advanced filters */}
-          <FiltersDemo />
           
           {/* Toggle columns visibility */}
           <DropdownMenu>
@@ -358,7 +350,7 @@ export const DatasetTable: React.FC = () => {
       {/* Status filter chips */}
       <div className="flex flex-wrap gap-2">
         <Button 
-          variant="outline" 
+          variant={activeStatus === undefined ? "default" : "outline"}
           size="sm" 
           className="h-7 text-xs"
           onClick={() => filterDatasetsByStatus(undefined)}
@@ -366,7 +358,7 @@ export const DatasetTable: React.FC = () => {
           All
         </Button>
         <Button 
-          variant="outline" 
+          variant={activeStatus === "draft" ? "default" : "outline"}
           size="sm" 
           className="h-7 text-xs"
           onClick={() => filterDatasetsByStatus("draft")}
@@ -374,7 +366,7 @@ export const DatasetTable: React.FC = () => {
           Draft
         </Button>
         <Button 
-          variant="outline" 
+          variant={activeStatus === "submitted" ? "default" : "outline"}
           size="sm" 
           className="h-7 text-xs"
           onClick={() => filterDatasetsByStatus("submitted")}
@@ -382,7 +374,7 @@ export const DatasetTable: React.FC = () => {
           Submitted
         </Button>
         <Button 
-          variant="outline" 
+          variant={activeStatus === "pending_review" ? "default" : "outline"}
           size="sm" 
           className="h-7 text-xs"
           onClick={() => filterDatasetsByStatus("pending_review")}
@@ -390,7 +382,7 @@ export const DatasetTable: React.FC = () => {
           Pending Review
         </Button>
         <Button 
-          variant="outline" 
+          variant={activeStatus === "approved" ? "default" : "outline"}
           size="sm" 
           className="h-7 text-xs"
           onClick={() => filterDatasetsByStatus("approved")}
@@ -398,7 +390,7 @@ export const DatasetTable: React.FC = () => {
           Approved
         </Button>
         <Button 
-          variant="outline" 
+          variant={activeStatus === "published" ? "default" : "outline"}
           size="sm" 
           className="h-7 text-xs"
           onClick={() => filterDatasetsByStatus("published")}
@@ -406,7 +398,7 @@ export const DatasetTable: React.FC = () => {
           Published
         </Button>
         <Button 
-          variant="outline" 
+          variant={activeStatus === "rejected" ? "default" : "outline"}
           size="sm" 
           className="h-7 text-xs"
           onClick={() => filterDatasetsByStatus("rejected")}
