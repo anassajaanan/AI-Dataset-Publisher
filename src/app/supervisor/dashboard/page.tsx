@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { 
   Card, 
   CardHeader, 
@@ -16,7 +15,6 @@ import {
   CheckCircle2, 
   XCircle, 
   Search, 
-  Filter, 
   FileText,
   Database
 } from 'lucide-react';
@@ -37,38 +35,83 @@ export const metadata = {
   description: 'Review and manage datasets submitted for approval',
 };
 
+// Define interfaces for MongoDB document types
+interface MongoDocument {
+  _id: any;
+  toObject: () => any;
+}
+
+interface DatasetDocument extends MongoDocument {
+  filename: string;
+  fileSize: number;
+  rowCount: number;
+  columns: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface VersionDocument extends MongoDocument {
+  datasetId: any;
+  versionNumber: number;
+  status: string;
+  comments?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface MetadataDocument extends MongoDocument {
+  datasetId: any;
+  title?: string;
+  description?: string;
+  category?: string;
+  keywords?: string[];
+}
+
+// Define interface for enhanced dataset
+interface EnhancedDataset {
+  _id: any;
+  filename: string;
+  fileSize: number;
+  rowCount: number;
+  columns: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  versions: VersionDocument[];
+  metadata: MetadataDocument | null;
+}
+
 async function getDatasets() {
   try {
     // Connect to MongoDB
     await connectToDatabase();
     
     // Get all datasets with their latest versions and metadata
-    const datasets = await Dataset.find().sort({ updatedAt: -1 });
+    const datasets = await Dataset.find().sort({ updatedAt: -1 }) as DatasetDocument[];
     
     const enhancedDatasets = await Promise.all(
       datasets.map(async (dataset) => {
         // Get the latest version
         const versions = await DatasetVersion.find({ datasetId: dataset._id })
           .sort({ versionNumber: -1 })
-          .limit(1);
+          .limit(1) as VersionDocument[];
         
         // Get the latest metadata
         const metadata = await DatasetMetadata.find({ datasetId: dataset._id })
           .sort({ updatedAt: -1 })
-          .limit(1);
+          .limit(1) as MetadataDocument[];
         
         return {
           ...dataset.toObject(),
           versions: versions,
           metadata: metadata.length > 0 ? metadata[0] : null
-        };
+        } as EnhancedDataset;
       })
     );
     
     return enhancedDatasets;
   } catch (error) {
     console.error('Error fetching datasets:', error);
-    return [];
+    return [] as EnhancedDataset[];
   }
 }
 

@@ -9,6 +9,17 @@ interface RouteContext {
   };
 }
 
+// Define interfaces for MongoDB document types
+interface MongoDocument {
+  _id: any;
+  toString(): string;
+}
+
+interface DatasetDocument extends MongoDocument {
+  // Add any other dataset properties needed
+  toObject(): Record<string, any>;
+}
+
 export async function GET(
   request: NextRequest,
   context: RouteContext
@@ -17,63 +28,39 @@ export async function GET(
     // Connect to MongoDB
     await connectToDatabase();
     
-    const id = context.params.id;
+    // Get dataset ID from params
+    const { id } = context.params;
     
-    // Validate id format to prevent CastError
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: 'Invalid dataset ID format' },
-        { status: 400 }
-      );
-    }
-    
-    // Get dataset
-    const dataset = await Dataset.findById(id);
+    // Find the dataset
+    const dataset = await Dataset.findById(id) as DatasetDocument;
     
     if (!dataset) {
       return NextResponse.json(
-        { error: 'Dataset not found' },
+        { message: 'Dataset not found' },
         { status: 404 }
       );
     }
     
-    // Get versions
+    // Get all versions for this dataset
     const versions = await DatasetVersion.find({ datasetId: dataset._id })
-      .sort({ versionNumber: -1 })
-      .lean();
+      .sort({ versionNumber: -1 });
     
-    // Get metadata if available
-    let metadata = null;
-    if (versions.length > 0) {
-      metadata = await DatasetMetadata.findOne({ versionId: versions[0]._id }).lean();
-      
-      // Ensure keywords are properly mapped for UI consumption
-      if (metadata) {
-        // Make sure keywords and keywordsArabic are always arrays
-        metadata.keywords = metadata.keywords || [];
-        metadata.keywordsArabic = metadata.keywordsArabic || [];
-        
-        // For Arabic-only content, ensure keywordsArabic has content
-        if (metadata.language === 'ar' && (!metadata.keywordsArabic || metadata.keywordsArabic.length === 0)) {
-          metadata.keywordsArabic = metadata.keywords;
-        }
-      }
-    }
+    // Get metadata for this dataset
+    const metadata = await DatasetMetadata.findOne({ datasetId: dataset._id });
     
-    // Return dataset with versions and metadata
+    // Return the dataset with versions and metadata
     return NextResponse.json({
-      ...dataset.toObject(),
-      id: dataset._id.toString(), // Add id property for consistency
-      versions: versions.map(v => ({
-        ...v,
-        id: v._id.toString() // Add id property to each version
-      })),
-      metadata
+      dataset: {
+        id: dataset._id.toString(), // Add id property for consistency
+        ...dataset.toObject(),
+        versions,
+        metadata
+      }
     });
   } catch (error) {
     console.error('Error fetching dataset:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch dataset' },
+      { message: 'An error occurred while fetching the dataset' },
       { status: 500 }
     );
   }

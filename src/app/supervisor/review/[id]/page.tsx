@@ -7,11 +7,9 @@ import {
   CardTitle, 
   CardContent, 
   CardDescription,
-  CardFooter 
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { 
   ArrowLeft, 
   FileText, 
@@ -36,6 +34,56 @@ interface ReviewPageProps {
   };
 }
 
+// Define interfaces for MongoDB document types
+interface MongoDocument {
+  _id: any;
+  toObject: () => any;
+}
+
+interface DatasetDocument extends MongoDocument {
+  filename: string;
+  fileSize: number;
+  rowCount: number;
+  columns: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface VersionDocument extends MongoDocument {
+  datasetId: any;
+  versionNumber: number;
+  status: string;
+  comments?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface MetadataDocument extends MongoDocument {
+  datasetId: any;
+  title?: string;
+  titleArabic?: string;
+  description?: string;
+  descriptionArabic?: string;
+  category?: string;
+  categoryArabic?: string;
+  keywords?: string[];
+  keywordsArabic?: string[];
+  language?: string;
+}
+
+// Define interface for enhanced dataset
+interface EnhancedDataset {
+  _id: any;
+  filename: string;
+  fileSize: number;
+  rowCount: number;
+  columns: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  versions: VersionDocument[];
+  metadata: MetadataDocument | null;
+}
+
 export const metadata = {
   title: 'Review Dataset - Dataset Publishing Platform',
   description: 'Review and approve or reject a dataset',
@@ -47,7 +95,7 @@ async function getDataset(id: string) {
     await connectToDatabase();
     
     // Get dataset with its latest version and metadata
-    const dataset = await Dataset.findById(id);
+    const dataset = await Dataset.findById(id) as DatasetDocument | null;
     
     if (!dataset) {
       return null;
@@ -55,17 +103,17 @@ async function getDataset(id: string) {
     
     // Get all versions
     const versions = await DatasetVersion.find({ datasetId: dataset._id })
-      .sort({ versionNumber: -1 });
+      .sort({ versionNumber: -1 }) as VersionDocument[];
     
     // Get the latest metadata
     const metadata = await DatasetMetadata.findOne({ datasetId: dataset._id })
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 }) as MetadataDocument | null;
     
     return {
       ...dataset.toObject(),
       versions: versions,
       metadata: metadata ? metadata.toObject() : null
-    };
+    } as EnhancedDataset;
   } catch (error) {
     console.error('Error fetching dataset:', error);
     return null;
@@ -312,13 +360,15 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                         <div>
                           <h3 className="text-sm font-medium text-muted-foreground mb-1">الكلمات المفتاحية</h3>
                           <div className="flex flex-wrap gap-2">
-                            {(metadata.keywordsArabic && metadata.keywordsArabic.length > 0 
-                              ? metadata.keywordsArabic 
-                              : metadata.keywords).map((tag: string, index: number) => (
-                              <Badge key={index} variant="outline" className="bg-primary/5">
-                                {tag}
-                              </Badge>
-                            ))}
+                            {metadata && metadata.keywords && (
+                              (metadata.keywordsArabic && metadata.keywordsArabic.length > 0 
+                                ? metadata.keywordsArabic 
+                                : metadata.keywords).map((tag: string, index: number) => (
+                                <Badge key={index} variant="outline" className="bg-primary/5">
+                                  {tag}
+                                </Badge>
+                              ))
+                            )}
                           </div>
                         </div>
                       </div>

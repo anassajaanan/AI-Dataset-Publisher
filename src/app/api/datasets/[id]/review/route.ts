@@ -8,6 +8,23 @@ interface RouteContext {
   };
 }
 
+// Define interfaces for MongoDB document types
+interface MongoDocument {
+  _id: any;
+  toString(): string;
+}
+
+interface DatasetDocument extends MongoDocument {
+  // Add any other dataset properties needed
+}
+
+interface VersionDocument extends MongoDocument {
+  datasetId: any;
+  status: string;
+  comments?: string;
+  save(): Promise<VersionDocument>;
+}
+
 export async function POST(
   request: NextRequest,
   context: RouteContext
@@ -47,7 +64,7 @@ export async function POST(
     }
     
     // Find the dataset
-    const dataset = await Dataset.findById(id);
+    const dataset = await Dataset.findById(id) as DatasetDocument;
     
     if (!dataset) {
       return NextResponse.json(
@@ -57,7 +74,7 @@ export async function POST(
     }
     
     // Find the version
-    const version = await DatasetVersion.findById(versionId);
+    const version = await DatasetVersion.findById(versionId) as VersionDocument;
     
     if (!version) {
       return NextResponse.json(

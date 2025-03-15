@@ -4,17 +4,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import { DatasetActions } from './DatasetActions';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 type DatasetVersion = {
   _id?: string;
@@ -40,7 +29,6 @@ export const DatasetList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchDatasets = async () => {
@@ -59,7 +47,7 @@ export const DatasetList: React.FC = () => {
       const response = await axios.get(`/api/datasets?${params.toString()}`);
       
       // Log the dataset IDs for debugging
-      console.log('Datasets received:', response.data.datasets.map(d => ({ 
+      console.log('Datasets received:', response.data.datasets.map((d: Dataset) => ({ 
         _id: d._id, 
         id: d.id,
         filename: d.filename
@@ -74,37 +62,9 @@ export const DatasetList: React.FC = () => {
     }
   };
 
-  const deleteDataset = async (datasetId: string) => {
-    try {
-      setDeletingId(datasetId);
-      setDeleteError(null);
-      
-      // Ensure we have a valid ID
-      if (!datasetId) {
-        setDeleteError('Invalid dataset ID');
-        return;
-      }
-      
-      // Log the dataset ID being deleted
-      console.log('Deleting dataset with ID:', datasetId);
-      
-      // Make the delete request
-      const response = await axios.delete(`/api/datasets/${datasetId}`);
-      console.log('Delete response:', response.data);
-      
-      // Refresh the dataset list
-      fetchDatasets();
-    } catch (error: any) {
-      console.error('Error deleting dataset:', error);
-      setDeleteError(error.response?.data?.message || 'Failed to delete dataset');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   useEffect(() => {
     fetchDatasets();
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, fetchDatasets]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -252,9 +212,8 @@ export const DatasetList: React.FC = () => {
             <tbody className="divide-y">
               {datasets.map((dataset) => {
                 const latestVersion = dataset.versions[0];
-                const isDraft = latestVersion?.status === 'draft';
-                // Use _id if available, otherwise fall back to id
-                const datasetId = dataset._id || dataset.id;
+                // Use _id if available, otherwise fall back to id, ensure it's a string
+                const datasetId = (dataset._id || dataset.id || '').toString();
                 
                 return (
                   <tr key={datasetId} className="text-sm text-gray-700 hover:bg-gray-50">
