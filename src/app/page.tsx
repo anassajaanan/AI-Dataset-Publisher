@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +8,7 @@ import { ArrowRight, Upload, Database, Brain, BookOpen, CheckCircle } from "luci
 import { Hero } from "@/components/ui/animated-hero";
 import { DisplayCardsDemo } from "@/components/ui/display-cards-demo";
 import { FeaturesSectionWithHoverEffectsDemo } from "@/components/ui/features-section-demo";
+import { RainbowButton } from "@/components/ui/rainbow-button";
 
 export default function Home() {
   return (
@@ -25,11 +28,9 @@ export default function Home() {
         <DisplayCardsDemo />
         
         <div className="text-center">
-          <Button asChild variant="outline" className="gap-2">
-            <Link href="/upload">
-              Try It Now <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <RainbowButton onClick={() => window.location.href = '/upload'}>
+            Try It Now <ArrowRight className="ml-2 h-4 w-4 inline" />
+          </RainbowButton>
         </div>
       </section>
 
@@ -45,11 +46,9 @@ export default function Home() {
         <FeaturesSectionWithHoverEffectsDemo />
 
         <div className="text-center mt-12">
-          <Button asChild size="lg">
-            <Link href="/upload">
-              Start Publishing Your Dataset
-            </Link>
-          </Button>
+          <RainbowButton onClick={() => window.location.href = '/upload'}>
+            Start Publishing Your Dataset <ArrowRight className="ml-2 h-4 w-4 inline" />
+          </RainbowButton>
         </div>
       </section>
 
@@ -63,11 +62,9 @@ export default function Home() {
             Join researchers worldwide who are using our platform to make their datasets discoverable,
             accessible, and citable.
           </p>
-          <Button asChild size="lg" className="mt-4">
-            <Link href="/upload">
-              Upload Your First Dataset
-            </Link>
-          </Button>
+          <RainbowButton onClick={() => window.location.href = '/upload'} className="mt-4">
+            Upload Your First Dataset <Upload className="ml-2 h-4 w-4 inline" />
+          </RainbowButton>
         </div>
       </section>
     </div>
