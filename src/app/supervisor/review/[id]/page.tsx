@@ -283,28 +283,28 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
         
         {metadata && (
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Tag className="h-5 w-5 text-primary" />
-                  <CardTitle>Metadata</CardTitle>
-                </div>
-                {metadata.language === 'both' && (
-                  <div className="flex border rounded-md overflow-hidden">
-                    <TabsList>
-                      <TabsTrigger value="english">English</TabsTrigger>
-                      <TabsTrigger value="arabic" className="flex items-center gap-1">
-                        <Globe className="h-4 w-4" />
-                        Arabic
-                      </TabsTrigger>
-                    </TabsList>
+            <Tabs defaultValue="english">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-5 w-5 text-primary" />
+                    <CardTitle>Metadata</CardTitle>
                   </div>
-                )}
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              <Tabs defaultValue="english" className="w-full">
+                  {metadata.language === 'both' && (
+                    <div className="flex border rounded-md overflow-hidden">
+                      <TabsList>
+                        <TabsTrigger value="english">English</TabsTrigger>
+                        <TabsTrigger value="arabic" className="flex items-center gap-1">
+                          <Globe className="h-4 w-4" />
+                          Arabic
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
                 {/* English Metadata */}
                 <TabsContent value="english">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -380,8 +380,8 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                     </div>
                   </TabsContent>
                 )}
-              </Tabs>
-            </CardContent>
+              </CardContent>
+            </Tabs>
           </Card>
         )}
         
