@@ -1,7 +1,8 @@
 import React from 'react';
-import { DatasetList } from '@/components/dashboard/DatasetList';
+import { DatasetTable } from '@/components/dashboard/DatasetTable';
+import { Metadata } from 'next';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Dashboard - Dataset Publishing Platform',
   description: 'Manage your datasets and view their status',
 };
@@ -9,10 +10,12 @@ export const metadata = {
 export default function DashboardPage() {
   return (
     <div className="container mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+      </div>
       
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <DatasetList />
+      <div className="bg-card rounded-lg shadow-sm border p-6">
+        <DatasetTable />
       </div>
     </div>
   );
