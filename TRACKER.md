@@ -27,6 +27,7 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Created MongoDB models for Dataset, DatasetVersion, and DatasetMetadata
   - Implemented proper relationships between models
   - Added timestamps for tracking creation and updates
+  - Added support for bilingual metadata (English and Arabic)
 
 - ✅ **Error Handling**
   - Implemented custom error classes for file processing and metadata generation
@@ -43,19 +44,20 @@ This document tracks the implementation progress of the Dataset Publishing Platf
 
 - ✅ **Metadata Generation Service**
   - Created service structure for AI-powered metadata generation
-  - Implemented OpenAI integration for enhanced metadata generation
-  - Added support for bilingual generation (English and Arabic)
+  - Implemented OpenAI integration using GPT-4o model
+  - Added robust support for bilingual generation (English and Arabic)
   - Enhanced metadata generation with file content analysis
   - Implemented structured output with Zod schema validation
-  - Added fallback simulation for development without API key
+  - Added language-specific schema validation for different output formats
 
 - ✅ **Enhanced Metadata Editor UI**
   - Implemented UI for reviewing and selecting AI-generated metadata options
-  - Added tabs interface to switch between multiple metadata suggestions
+  - Added interface to display multiple metadata suggestions
   - Implemented form for editing selected metadata
-  - Added bilingual support for metadata editing
-  - Implemented tag management (add/remove)
+  - Enhanced bilingual support with proper RTL formatting for Arabic content
+  - Implemented tag management (add/remove) with improved UX
   - Added save draft and submit functionality
+  - Improved language selection with options for English, Arabic, or bilingual content
 
 - ❌ **Unit Testing**
   - Not yet implemented for metadata generation service
@@ -67,6 +69,7 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Added state management to track progress through steps
   - Implemented navigation between steps with back/forward functionality
   - Added success confirmation and next steps guidance
+  - Improved UI with progress indicators
 
 - ❌ **Supervisor Review Interface**
   - Not yet implemented
@@ -74,6 +77,7 @@ This document tracks the implementation progress of the Dataset Publishing Platf
 - ✅ **Dataset Versioning**
   - Implemented version tracking in the database
   - Created UI to display version history
+  - Added status tracking for each version
 
 - ✅ **Dashboard**
   - Implemented datasets listing page with status indicators
@@ -101,16 +105,15 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Returns headers and sample rows from the actual file
   - Includes fallback for error handling
 
-- ✅ `/api/metadata`
-  - Generates basic metadata using AI-powered analysis
-  - Reads file content for metadata generation
-  - Supports bilingual metadata generation
+- ✅ `/api/datasets/[id]/metadata`
+  - Retrieves and updates metadata for a specific dataset
+  - Supports bilingual metadata (English and Arabic)
 
-- ✅ `/api/metadata/enhanced`
-  - Generates multiple metadata options using OpenAI
-  - Provides structured output with title, description, tags, and category
-  - Supports bilingual metadata generation (English and Arabic)
-  - Includes detailed analysis of file content for better suggestions
+- ✅ `/api/metadata`
+  - Generates metadata options using AI-powered analysis
+  - Reads file content for metadata generation
+  - Supports language selection (English, Arabic, or bilingual)
+  - Returns structured metadata options for user selection
 
 ## Pages Implemented
 
@@ -130,13 +133,15 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Detailed view of a specific dataset
   - File information, columns, and metadata
   - Version history
+  - Bilingual metadata display
 
-- ✅ **Metadata Editor Page** (integrated in `/upload`)
+- ✅ **Metadata Editor Page** (`/datasets/[id]/metadata`)
   - Enhanced UI for reviewing and editing AI-generated metadata
   - Multiple metadata options to choose from
-  - Bilingual support
+  - Robust bilingual support with proper RTL formatting
+  - Tag management and category selection
 
-- ✅ **Submit for Review Page** (integrated in `/upload`)
+- ✅ **Submit for Review Page** (`/datasets/[id]/submit`)
   - Confirmation of submission
   - Options to view dataset or go to dashboard
 
@@ -161,22 +166,46 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Status badges
   - Filtering by status
 
-- ✅ **EnhancedMetadataEditor**
-  - Tabs interface for multiple metadata options
+- ✅ **MetadataEditor**
+  - Interface for multiple metadata options
   - Form for editing selected metadata
-  - Tag management
-  - Bilingual support
+  - Enhanced tag management
+  - Robust bilingual support with proper RTL formatting
   - Save draft and submit functionality
+  - Language selection (English, Arabic, or bilingual)
 
 - ✅ **UploadWorkflow**
   - Multi-step process management
   - State persistence between steps
   - Navigation between steps
+  - Progress indicators
 
 - ✅ **FileStorageService**
   - File saving and retrieval
   - Directory management
   - Error handling
+
+- ✅ **Progress**
+  - Visual progress indicator for multi-step workflows
+  - Customizable appearance and animation
+
+## Recent Enhancements
+
+- ✅ **Improved Language Support**
+  - Enhanced the MetadataEditor component to better handle different language options
+  - Added proper RTL formatting for Arabic content
+  - Improved UI for displaying bilingual metadata
+  - Updated the metadata generation API to properly handle language parameters
+
+- ✅ **TypeScript Improvements**
+  - Fixed TypeScript errors in various components
+  - Added proper type definitions for API responses
+  - Improved type safety in route handlers
+
+- ✅ **UI/UX Enhancements**
+  - Improved the metadata editor interface
+  - Enhanced the dataset detail page
+  - Added better error handling and user feedback
 
 ## Next Steps
 
@@ -221,10 +250,10 @@ This document tracks the implementation progress of the Dataset Publishing Platf
    - Add role-based access control
    - Implement user profile management
 
-8. **Implement Internationalization**
-   - Add full support for Arabic language
-   - Implement language switching
-   - Ensure RTL layout support
+8. ~~**Implement Internationalization**~~ ✅ DONE
+   - ~~Add full support for Arabic language~~
+   - ~~Implement language switching~~
+   - ~~Ensure RTL layout support~~
 
 9. **Add Export Functionality**
    - Allow exporting datasets in different formats
@@ -233,8 +262,8 @@ This document tracks the implementation progress of the Dataset Publishing Platf
 
 ## Technical Debt
 
-- Fix TypeScript errors in the datasets page related to the Input component
-- Improve error handling in the dataset detail page
+- ~~Fix TypeScript errors in the datasets page related to the Input component~~ ✅ DONE
+- ~~Improve error handling in the dataset detail page~~ ✅ DONE
 - Enhance the MongoDB connection handling
 - Optimize database queries for better performance
 - Add proper documentation for API endpoints 
