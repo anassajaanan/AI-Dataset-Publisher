@@ -127,7 +127,7 @@ export const generateMetadata = async (
     }
   ]
 }`;
-    languageInstructions = "Generate all metadata in Arabic only. Make sure all text, including titles, descriptions, tags, and categories are in Arabic.";
+    languageInstructions = "Generate all metadata in Arabic only. Ensure that all text including titles, descriptions, tags, and categories are in Arabic.";
   } else if (language === 'both') {
     schemaExample = `{
   "options": [
@@ -166,19 +166,17 @@ export const generateMetadata = async (
     languageInstructions = "Generate metadata in both English and Arabic. Provide English versions in the 'title', 'description', 'tags', and 'category' fields, and Arabic translations in the 'titleArabic', 'descriptionArabic', 'tagsArabic', and 'categoryArabic' fields.";
   }
 
-  // Build the prompt including instructions and context.
+  // Build the prompt including enhanced instructions and context.
   const userPrompt = `
-You are an expert at generating metadata for datasets. Given the file content and basic file information provided below, please produce 3 distinct metadata options.
+You are a highly experienced metadata generator for datasets. Analyze the provided file content and basic file information carefully, and produce 3 distinct metadata options that are comprehensive and detailed.
 
 ${languageInstructions}
 
-Each option must include:
-${language === 'en' || language === 'both' ? '- a title in English,' : ''}
-${language === 'ar' || language === 'both' ? '- a title in Arabic,' : ''}
-${language === 'en' || language === 'both' ? '- a description in English,' : ''}
-${language === 'ar' || language === 'both' ? '- a description in Arabic,' : ''}
-- a list of tags,
-- a category suggestion.
+For each metadata option, ensure you generate:
+- A compelling and accurate title that reflects the essence of the dataset.
+- A comprehensive, detailed description that fully explains the dataset’s content.
+- A list of up to 10 highly relevant tags. If the file content is extensive, include more tags to capture all key aspects.
+- A well-considered category suggestion.
 
 Respond with a JSON object that exactly matches the following schema:
 
@@ -189,13 +187,13 @@ File Content Preview: ${fileContentPreview}
   `;
 
   try {
-    // Call the OpenAI API using the create method
+    // Call the OpenAI API using the create method with the o3-mini model
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+      model: "o3-mini",
       messages: [
         {
           role: "system",
-          content: "You are an expert metadata generator for datasets. You can generate metadata in both English and Arabic.",
+          content: "You are a highly experienced metadata generator for datasets. Your task is to analyze the provided file content and basic file details to generate comprehensive metadata. Your output must include a compelling title, a detailed and thorough description, up to 10 relevant tags, and an appropriate category suggestion. Ensure that your metadata is accurate, engaging, and reflective of the dataset content.",
         },
         { role: "user", content: userPrompt },
       ],
@@ -228,4 +226,4 @@ File Content Preview: ${fileContentPreview}
     console.error("Error generating metadata:", error);
     throw new MetadataGenerationError("Metadata generation failed.");
   }
-}; 
+};
