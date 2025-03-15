@@ -1,3 +1,5 @@
+"use client";
+
 import { Hero } from "@/components/ui/animated-hero"
 
 function HeroDemo() {
