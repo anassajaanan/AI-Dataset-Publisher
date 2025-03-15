@@ -50,6 +50,11 @@ export default function RootLayout({
                     Dashboard
                   </Link>
                 </li>
+                <li>
+                  <Link href="/supervisor/dashboard" className="hover:text-primary transition-colors">
+                    Supervisor
+                  </Link>
+                </li>
               </ul>
             </nav>
           </div>

@@ -1,250 +1,208 @@
 # Publishing Workflow and Review System
 
-This document describes the publishing workflow and review system feature of the Dataset Publishing Platform.
-
 ## Overview
 
-The publishing workflow and review system feature provides a structured process for dataset publication, with multiple steps from initial upload to final publication. The feature includes a supervisor review interface for approving or requesting changes to datasets, with version history tracking for dataset changes. The workflow is designed to ensure data quality and metadata accuracy before publication.
+The Publishing Workflow and Review System is a comprehensive feature that manages the lifecycle of datasets from upload to publication. It includes a multi-step workflow, dataset versioning, supervisor review, and status tracking.
 
-## User Flow
+## Key Components
 
-### Dataset Creator Flow
+### 1. Multi-step Publishing Workflow
 
-1. User uploads a dataset file
-2. User edits and saves metadata for the dataset
-3. User reviews the dataset and metadata
-4. User submits the dataset for review
-5. User receives notification when the dataset is approved or rejected
-6. If rejected, user makes the requested changes and resubmits
-7. If approved, the dataset is published and available to users
+The publishing workflow consists of several steps:
 
-### Supervisor Flow
+1. **Upload**: Users upload CSV or Excel files
+2. **Preview**: Users preview the dataset and confirm its contents
+3. **Metadata**: Users add or generate metadata for the dataset
+4. **Submit**: Users submit the dataset for review
+5. **Review**: Supervisors review and approve or reject the dataset
+6. **Publish**: Approved datasets are published and made available
 
-1. Supervisor receives notification of a dataset pending review
-2. Supervisor reviews the dataset and metadata
-3. Supervisor approves the dataset or requests changes
-4. If changes are requested, supervisor provides feedback
-5. When the dataset is resubmitted, supervisor reviews the changes
-6. When approved, the dataset is published automatically
+Each step has clear requirements and validation to ensure data quality and completeness.
 
-## Components
+### 2. Dataset Versioning
 
-### Workflow Steps Component
+The system maintains a complete version history for each dataset:
 
-The workflow steps component displays the current step in the publishing workflow, with indicators for completed, current, and upcoming steps. It provides navigation between steps and prevents access to steps that are not yet available.
+- Each dataset can have multiple versions
+- Versions are numbered sequentially
+- Each version has a status (draft, review, published, rejected)
+- Version history is displayed on the dataset detail page
+- Comments can be added to each version
 
-![Workflow Steps Component](../assets/workflow-steps.png)
+### 3. Supervisor Review Interface
 
-### Review Interface Component
+The supervisor review interface allows authorized users to:
 
-The review interface component displays the dataset and metadata for review, with options to approve or request changes. It includes a comment field for providing feedback and a history of previous review actions.
+- View all datasets pending review
+- Filter and search datasets by various criteria
+- Review dataset details including metadata and file information
+- Approve datasets for publication
+- Reject datasets with comments explaining the reason
+- Track the status of all datasets in the system
 
-![Review Interface Component](../assets/review-interface.png)
+### 4. Status Tracking
 
-### Dataset Dashboard Component
+Datasets can have the following statuses:
 
-The dataset dashboard component displays a list of datasets with their current status, allowing users to filter and search for datasets. It provides quick access to dataset details and actions based on the dataset's status.
+- **Draft**: Initial state, can be edited by the owner
+- **Review**: Submitted for supervisor review, cannot be edited
+- **Published**: Approved by a supervisor, available for use
+- **Rejected**: Rejected by a supervisor, can be revised and resubmitted
 
-![Dataset Dashboard Component](../assets/dataset-dashboard.png)
-
-## API Endpoints
-
-### Update Dataset Status
-
-```
-PATCH /api/datasets/:datasetId/status
-```
-
-Updates the status of a dataset.
-
-#### Request
-
-```json
-{
-  "status": "pending_review",
-  "comment": "Ready for supervisor review"
-}
-```
-
-#### Response
-
-**Success (200 OK)**
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "64f7e8a12b3c4d5e6f7a8b9c",
-    "status": "pending_review",
-    "previousStatus": "draft",
-    "updatedAt": "2023-09-05T16:30:45Z",
-    "updatedBy": "user123"
-  }
-}
-```
-
-### Publish Dataset
-
-```
-POST /api/datasets/:datasetId/publish
-```
-
-Publishes a dataset, making it available to users.
-
-#### Request
-
-```json
-{
-  "reviewComment": "Approved for publication",
-  "notifyCreator": true
-}
-```
-
-#### Response
-
-**Success (200 OK)**
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "64f7e8a12b3c4d5e6f7a8b9c",
-    "status": "published",
-    "previousStatus": "pending_review",
-    "publishedAt": "2023-09-05T16:45:30Z",
-    "publishedBy": "supervisor456",
-    "version": 2
-  }
-}
-```
-
-### Get Dataset Versions
-
-```
-GET /api/datasets/:datasetId/versions
-```
-
-Retrieves the version history of a dataset.
-
-#### Response
-
-**Success (200 OK)**
-
-```json
-{
-  "success": true,
-  "data": {
-    "versions": [
-      {
-        "version": 2,
-        "status": "published",
-        "updatedAt": "2023-09-05T16:45:30Z",
-        "updatedBy": "user123",
-        "changes": ["Updated metadata", "Fixed column names"]
-      },
-      {
-        "version": 1,
-        "status": "published",
-        "updatedAt": "2023-09-01T10:30:15Z",
-        "updatedBy": "user123",
-        "changes": ["Initial publication"]
-      }
-    ]
-  }
-}
-```
+Status changes are tracked in the version history with timestamps and user information.
 
 ## Implementation Details
 
-### Workflow States
+### API Endpoints
 
-The publishing workflow includes the following states:
+#### `/api/datasets/[id]/submit`
 
-1. **Draft**: The dataset is being created and edited by the user
-2. **Pending Review**: The dataset has been submitted for review by a supervisor
-3. **Changes Requested**: The supervisor has requested changes to the dataset
-4. **Approved**: The dataset has been approved by a supervisor
-5. **Published**: The dataset is published and available to users
-6. **Rejected**: The dataset has been rejected and is not available to users
+**Method**: POST
 
-### State Transitions
+**Purpose**: Submit a dataset for review
 
-The following state transitions are allowed:
+**Request Body**:
+```json
+{
+  "versionId": "string",
+  "comments": "string (optional)"
+}
+```
 
-- Draft → Pending Review (User submits for review)
-- Pending Review → Approved (Supervisor approves)
-- Pending Review → Changes Requested (Supervisor requests changes)
-- Changes Requested → Pending Review (User resubmits after changes)
-- Approved → Published (Automatic or manual publication)
-- Pending Review → Rejected (Supervisor rejects)
+**Response**:
+```json
+{
+  "message": "Dataset submitted for review successfully",
+  "version": {
+    "id": "string",
+    "status": "review",
+    "comments": "string (optional)"
+  }
+}
+```
 
-### Version Control
+#### `/api/datasets/[id]/review`
 
-The feature includes version control for datasets, with the following approach:
+**Method**: POST
 
-1. Each dataset has a version number, starting at 1
-2. When a dataset is updated after publication, a new version is created
-3. The version number is incremented for each published version
-4. Previous versions are stored in the database for reference
-5. Users can view the version history and differences between versions
+**Purpose**: Review a dataset (approve or reject)
 
-### Notification System
+**Request Body**:
+```json
+{
+  "versionId": "string",
+  "action": "approve" | "reject",
+  "comments": "string (required for rejection)"
+}
+```
 
-The feature includes a notification system to keep users informed about the status of their datasets:
+**Response**:
+```json
+{
+  "message": "Dataset approved/rejected successfully",
+  "version": {
+    "id": "string",
+    "status": "published" | "rejected",
+    "comments": "string (optional)"
+  }
+}
+```
 
-1. Users receive notifications when their datasets are approved or rejected
-2. Supervisors receive notifications when datasets are submitted for review
-3. Users receive notifications when changes are requested for their datasets
-4. Notifications are delivered via email and in-app messages
-5. Users can configure their notification preferences
+### Database Schema
 
-## Configuration Options
+The system uses the following MongoDB schemas:
 
-The feature can be configured with the following options:
+#### Dataset
 
-- Workflow steps and states
-- Required approvals for publication
-- Automatic publication after approval
-- Notification settings
-- Review criteria and checklists
-- Version control settings
+```typescript
+interface IDataset {
+  filename: string;
+  fileSize: number;
+  rowCount: number;
+  columns: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
 
-## Security Considerations
+#### DatasetVersion
 
-The feature implements several security measures:
+```typescript
+interface IDatasetVersion {
+  datasetId: mongoose.Types.ObjectId;
+  versionNumber: number;
+  filePath: string;
+  status: 'draft' | 'review' | 'published' | 'rejected';
+  comments?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
 
-- Role-based access control for review and publication
-- Audit logging for all status changes
-- Validation of state transitions
-- Prevention of unauthorized status changes
-- Secure storage of review comments and feedback
+### UI Components
 
-## Performance Considerations
+#### SubmitForm
 
-The feature is optimized for performance:
+Client-side component for submitting datasets for review:
 
-- Efficient state management to minimize database queries
-- Caching of dataset status and version information
-- Asynchronous notification delivery
-- Pagination for version history and review comments
-- Optimized queries for dashboard and listing views
+```tsx
+interface SubmitFormProps {
+  datasetId: string;
+  versionId: string;
+}
 
-## Accessibility
+export default function SubmitForm({ datasetId, versionId }: SubmitFormProps) {
+  // Implementation details...
+}
+```
 
-The feature is designed with accessibility in mind:
+#### ReviewActions
 
-- Keyboard navigation for all interactive elements
-- Screen reader support with ARIA attributes
-- High contrast mode for visually impaired users
-- Clear status indicators with both color and text
-- Descriptive error messages and feedback
+Client-side component for reviewing datasets:
+
+```tsx
+interface ReviewActionsProps {
+  datasetId: string;
+  versionId: string;
+}
+
+export default function ReviewActions({ datasetId, versionId }: ReviewActionsProps) {
+  // Implementation details...
+}
+```
+
+## User Flow
+
+### Dataset Owner Flow
+
+1. User uploads a dataset file
+2. User previews the dataset and confirms its contents
+3. User adds or generates metadata for the dataset
+4. User submits the dataset for review with optional comments
+5. User waits for supervisor review
+6. If rejected, user can view rejection comments and resubmit
+7. If approved, the dataset is published
+
+### Supervisor Flow
+
+1. Supervisor logs in and navigates to the supervisor dashboard
+2. Supervisor views datasets pending review
+3. Supervisor selects a dataset to review
+4. Supervisor reviews dataset details, file information, and metadata
+5. Supervisor approves the dataset or rejects it with comments
+6. Supervisor can view all datasets and their statuses
+
+## Security and Access Control
+
+- Only authorized supervisors can access the review interface
+- Dataset owners can only submit their own datasets for review
+- Only datasets with complete metadata can be submitted for review
+- Rejected datasets can only be resubmitted after modifications
 
 ## Future Enhancements
 
-Planned enhancements for the feature include:
-
-- Multi-level approval workflow with multiple reviewers
-- Customizable workflow steps for different dataset types
-- Advanced version comparison tools
-- Scheduled publication dates
-- Integration with external review systems 
+- Email notifications for status changes
+- More detailed review criteria and checklists
+- Multi-level approval workflow for complex datasets
+- Automated validation checks before submission
+- Analytics dashboard for tracking review metrics 
