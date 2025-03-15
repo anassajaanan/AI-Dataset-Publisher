@@ -167,60 +167,6 @@ export default async function SupervisorDashboard() {
         </div>
       </div>
       
-      <div className="mb-8">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Search and Filter</CardTitle>
-            <CardDescription>Find datasets by name, status, or date</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="search">Search</Label>
-                <div className="relative mt-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Search by filename or title..."
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select defaultValue="all">
-                  <SelectTrigger id="status" className="mt-1">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="review">Pending Review</SelectItem>
-                    <SelectItem value="published">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="date">Date Range</Label>
-                <Select defaultValue="all">
-                  <SelectTrigger id="date" className="mt-1">
-                    <SelectValue placeholder="Select date range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="week">This Week</SelectItem>
-                    <SelectItem value="month">This Month</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
       <Tabs defaultValue="pending" className="space-y-4">
         <TabsList>
           <TabsTrigger value="pending" className="flex items-center gap-2">
