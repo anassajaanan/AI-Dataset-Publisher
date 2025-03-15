@@ -114,6 +114,7 @@ export const DatasetTable: React.FC = () => {
       // Add status parameter to the API call if provided
       const url = status ? `/api/datasets?status=${status}` : '/api/datasets';
       const response = await axios.get(url);
+      console.log('Fetched datasets:', response.data.datasets);
       setDatasets(response.data.datasets);
     } catch (error) {
       console.error('Error fetching datasets:', error);
@@ -145,7 +146,7 @@ export const DatasetTable: React.FC = () => {
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'draft':
-        return '';
+        return 'bg-gray-100 text-gray-800';
       case 'submitted':
         return 'bg-blue-100 text-blue-800';
       case 'pending_review':
@@ -157,7 +158,7 @@ export const DatasetTable: React.FC = () => {
       case 'rejected':
         return 'bg-red-100 text-red-800';
       default:
-        return '';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -216,7 +217,7 @@ export const DatasetTable: React.FC = () => {
       header: "Status",
       cell: ({ row }) => {
         const versions = row.original.versions;
-        const status = versions && versions.length > 0 ? versions[0]?.status || 'draft' : 'draft';
+        const status = versions && versions.length > 0 ? versions[0]?.status : 'draft';
         return (
           <Badge className={getStatusBadgeClass(status)}>
             {getStatusLabel(status)}
@@ -235,13 +236,15 @@ export const DatasetTable: React.FC = () => {
       cell: ({ row }) => {
         const dataset = row.original;
         const datasetId = (dataset._id || dataset.id || '').toString();
-        const latestVersion = dataset.versions && dataset.versions.length > 0 ? dataset.versions[0] : undefined;
+        const versions = dataset.versions;
+        const latestVersion = versions && versions.length > 0 ? versions[0] : undefined;
+        const status = latestVersion?.status || 'draft';
         
         return (
           <DatasetActions 
             datasetId={datasetId} 
             filename={dataset.filename}
-            status={latestVersion?.status}
+            status={status}
             onDelete={() => fetchDatasets(activeStatus)}
           />
         );
