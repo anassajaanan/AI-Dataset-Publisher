@@ -97,4 +97,72 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Connect to MongoDB
+    await connectToDatabase();
+    
+    // Get datasetId from the request
+    const { searchParams } = new URL(request.url);
+    const datasetId = searchParams.get('id');
+    
+    if (!datasetId) {
+      return NextResponse.json(
+        { message: 'Dataset ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Import models
+    const { DatasetVersion, DatasetMetadata } = await import('@/lib/db/models');
+    
+    // Check if the dataset exists
+    const dataset = await Dataset.findById(datasetId);
+    
+    if (!dataset) {
+      return NextResponse.json(
+        { message: 'Dataset not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Check if all versions are in draft status
+    const versions = await DatasetVersion.find({ datasetId });
+    
+    // If any version is not in draft status, don't allow deletion
+    const nonDraftVersions = versions.filter(version => version.status !== 'draft');
+    if (nonDraftVersions.length > 0) {
+      return NextResponse.json(
+        { message: 'Cannot delete dataset with non-draft versions' },
+        { status: 403 }
+      );
+    }
+    
+    // Delete all related data
+    // 1. Delete metadata
+    await DatasetMetadata.deleteMany({ datasetId });
+    
+    // 2. Delete versions
+    await DatasetVersion.deleteMany({ datasetId });
+    
+    // 3. Delete the dataset
+    await Dataset.findByIdAndDelete(datasetId);
+    
+    // TODO: Also delete the physical files from storage
+    // This would require importing the file storage service
+    // and deleting the files associated with each version
+    
+    return NextResponse.json({ 
+      message: 'Dataset and all related data deleted successfully',
+      deletedId: datasetId
+    });
+  } catch (error) {
+    console.error('Error deleting dataset:', error);
+    return NextResponse.json(
+      { message: 'An error occurred while deleting the dataset' },
+      { status: 500 }
+    );
+  }
 } 

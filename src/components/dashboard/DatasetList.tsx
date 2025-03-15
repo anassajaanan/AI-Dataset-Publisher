@@ -3,6 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type DatasetVersion = {
   id: string;
@@ -26,6 +38,8 @@ export const DatasetList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchDatasets = async () => {
     setLoading(true);
@@ -47,6 +61,23 @@ export const DatasetList: React.FC = () => {
       setError('Failed to load datasets. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteDataset = async (datasetId: string) => {
+    try {
+      setDeletingId(datasetId);
+      setDeleteError(null);
+      
+      await axios.delete(`/api/datasets/${datasetId}`);
+      
+      // Refresh the dataset list
+      fetchDatasets();
+    } catch (error: any) {
+      console.error('Error deleting dataset:', error);
+      setDeleteError(error.response?.data?.message || 'Failed to delete dataset');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -127,6 +158,12 @@ export const DatasetList: React.FC = () => {
         </div>
       </div>
       
+      {deleteError && (
+        <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md">
+          {deleteError}
+        </div>
+      )}
+      
       {loading ? (
         <div className="text-center py-8">
           <p>Loading datasets...</p>
@@ -193,6 +230,8 @@ export const DatasetList: React.FC = () => {
             <tbody className="divide-y">
               {datasets.map((dataset) => {
                 const latestVersion = dataset.versions[0];
+                const isDraft = latestVersion?.status === 'draft';
+                
                 return (
                   <tr key={dataset.id} className="text-sm text-gray-700 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium">{dataset.filename}</td>
@@ -215,12 +254,41 @@ export const DatasetList: React.FC = () => {
                         >
                           View
                         </Link>
-                        <Link
-                          href={`/datasets/${dataset.id}/edit`}
-                          className="text-primary hover:underline"
-                        >
-                          Edit
-                        </Link>
+                        {isDraft && (
+                          <>
+                            <Link
+                              href={`/datasets/${dataset.id}/edit`}
+                              className="text-primary hover:underline"
+                            >
+                              Edit
+                            </Link>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button className="text-red-600 hover:underline">
+                                  Delete
+                                </button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the dataset
+                                    "{dataset.filename}" and all its associated data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteDataset(dataset.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    {deletingId === dataset.id ? 'Deleting...' : 'Delete'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
