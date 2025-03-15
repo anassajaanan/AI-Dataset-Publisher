@@ -77,6 +77,12 @@ type DatasetVersion = {
   versionNumber: number;
   status: string;
   createdAt: string;
+  _doc?: {
+    status: string;
+    versionNumber: number;
+    createdAt: string;
+    [key: string]: any;
+  };
 };
 
 type Dataset = {
@@ -124,13 +130,28 @@ export const DatasetTable: React.FC = () => {
         console.log('  versions:', dataset.versions);
         if (dataset.versions && dataset.versions.length > 0) {
           console.log('  first version:', dataset.versions[0]);
-          console.log('  status:', dataset.versions[0].status);
+          // Try to access status from _doc
+          if (dataset.versions[0]._doc) {
+            console.log('  _doc:', dataset.versions[0]._doc);
+            console.log('  status from _doc:', dataset.versions[0]._doc.status);
+          }
         } else {
           console.log('  No versions found');
         }
       });
       
-      setDatasets(response.data.datasets);
+      // Transform the data to ensure status is accessible
+      const transformedDatasets = response.data.datasets.map((dataset: any) => {
+        if (dataset.versions && dataset.versions.length > 0) {
+          // Extract status from _doc if available
+          if (dataset.versions[0]._doc && dataset.versions[0]._doc.status) {
+            dataset.versions[0].status = dataset.versions[0]._doc.status;
+          }
+        }
+        return dataset;
+      });
+      
+      setDatasets(transformedDatasets);
     } catch (error) {
       console.error('Error fetching datasets:', error);
       setError('Failed to load datasets. Please try again.');
@@ -240,10 +261,18 @@ export const DatasetTable: React.FC = () => {
         if (dataset.versions && dataset.versions.length > 0) {
           const version = dataset.versions[0];
           console.log('  first version:', version);
+          
+          // Try to get status directly
           if (version.status) {
             status = version.status;
             console.log('  status found:', status);
-          } else {
+          } 
+          // Try to get status from _doc
+          else if (version._doc && version._doc.status) {
+            status = version._doc.status;
+            console.log('  status found from _doc:', status);
+          } 
+          else {
             console.log('  no status in version, using default');
           }
         } else {
@@ -277,10 +306,18 @@ export const DatasetTable: React.FC = () => {
         if (dataset.versions && dataset.versions.length > 0) {
           const version = dataset.versions[0];
           console.log('  first version:', version);
+          
+          // Try to get status directly
           if (version.status) {
             status = version.status;
             console.log('  status found:', status);
-          } else {
+          } 
+          // Try to get status from _doc
+          else if (version._doc && version._doc.status) {
+            status = version._doc.status;
+            console.log('  status found from _doc:', status);
+          } 
+          else {
             console.log('  no status in version, using default');
           }
         } else {
