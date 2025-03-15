@@ -47,9 +47,9 @@ interface Version {
 }
 
 interface Metadata {
-  _id: string;
+  _id?: string;
   id?: string;
-  datasetId: string;
+  datasetId?: string;
   title?: string;
   description?: string;
   category?: string;
@@ -60,13 +60,18 @@ export function SupervisorDashboardContent() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('review');
 
   useEffect(() => {
     const fetchDatasets = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/datasets');
+        const url = activeTab === 'all' 
+          ? '/api/datasets' 
+          : `/api/datasets?status=${activeTab}`;
+        
+        const response = await axios.get(url);
+        console.log('API Response:', response.data);
         setDatasets(response.data.datasets || []);
         setError(null);
       } catch (err: any) {
@@ -78,7 +83,7 @@ export function SupervisorDashboardContent() {
     };
 
     fetchDatasets();
-  }, []);
+  }, [activeTab]);
 
   // Filter datasets by status
   const pendingReview = datasets.filter(dataset => 
@@ -140,12 +145,12 @@ export function SupervisorDashboardContent() {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <TabsList>
-        <TabsTrigger value="pending" className="flex items-center gap-2">
+        <TabsTrigger value="review" className="flex items-center gap-2">
           <Clock className="h-4 w-4" />
           Pending Review
           <Badge variant="secondary" className="ml-1">{pendingReview.length}</Badge>
         </TabsTrigger>
-        <TabsTrigger value="approved" className="flex items-center gap-2">
+        <TabsTrigger value="published" className="flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4" />
           Approved
           <Badge variant="secondary" className="ml-1">{approved.length}</Badge>
@@ -157,7 +162,7 @@ export function SupervisorDashboardContent() {
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="pending" className="space-y-4">
+      <TabsContent value="review" className="space-y-4">
         {pendingReview.length === 0 ? (
           <Card>
             <CardContent className="pt-6 text-center">
@@ -218,7 +223,7 @@ export function SupervisorDashboardContent() {
         )}
       </TabsContent>
       
-      <TabsContent value="approved" className="space-y-4">
+      <TabsContent value="published" className="space-y-4">
         {approved.length === 0 ? (
           <Card>
             <CardContent className="pt-6 text-center">

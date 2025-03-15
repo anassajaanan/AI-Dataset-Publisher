@@ -81,7 +81,8 @@ export function DatasetReview({ datasetId }: DatasetReviewProps) {
       try {
         setLoading(true);
         const response = await axios.get(`/api/datasets/${datasetId}`);
-        setDataset(response.data);
+        console.log('API Response:', response.data);
+        setDataset(response.data.dataset || response.data);
         setError(null);
       } catch (err) {
         console.error('Error fetching dataset:', err);
