@@ -121,25 +121,6 @@ export const DatasetTable: React.FC = () => {
       const url = status ? `/api/datasets?status=${status}` : '/api/datasets';
       const response = await axios.get(url);
       
-      // More detailed debugging
-      console.log('Fetched datasets:', response.data.datasets);
-      
-      // Check each dataset's versions
-      response.data.datasets.forEach((dataset: Dataset, index: number) => {
-        console.log(`Dataset ${index + 1} - ${dataset.filename}:`);
-        console.log('  versions:', dataset.versions);
-        if (dataset.versions && dataset.versions.length > 0) {
-          console.log('  first version:', dataset.versions[0]);
-          // Try to access status from _doc
-          if (dataset.versions[0]._doc) {
-            console.log('  _doc:', dataset.versions[0]._doc);
-            console.log('  status from _doc:', dataset.versions[0]._doc.status);
-          }
-        } else {
-          console.log('  No versions found');
-        }
-      });
-      
       // Transform the data to ensure status is accessible
       const transformedDatasets = response.data.datasets.map((dataset: any) => {
         if (dataset.versions && dataset.versions.length > 0) {
@@ -253,30 +234,20 @@ export const DatasetTable: React.FC = () => {
       header: "Status",
       cell: ({ row }) => {
         const dataset = row.original;
-        console.log('Rendering status for dataset:', dataset.filename);
-        console.log('  versions:', dataset.versions);
         
         // Extract status from versions
         let status = 'draft';
         if (dataset.versions && dataset.versions.length > 0) {
           const version = dataset.versions[0];
-          console.log('  first version:', version);
           
           // Try to get status directly
           if (version.status) {
             status = version.status;
-            console.log('  status found:', status);
           } 
           // Try to get status from _doc
           else if (version._doc && version._doc.status) {
             status = version._doc.status;
-            console.log('  status found from _doc:', status);
-          } 
-          else {
-            console.log('  no status in version, using default');
           }
-        } else {
-          console.log('  no versions found, using default status');
         }
         
         return (
@@ -296,32 +267,21 @@ export const DatasetTable: React.FC = () => {
       header: "Actions",
       cell: ({ row }) => {
         const dataset = row.original;
-        console.log('Rendering actions for dataset:', dataset.filename);
-        console.log('  versions:', dataset.versions);
-        
         const datasetId = (dataset._id || dataset.id || '').toString();
         
         // Extract status from versions
         let status = 'draft';
         if (dataset.versions && dataset.versions.length > 0) {
           const version = dataset.versions[0];
-          console.log('  first version:', version);
           
           // Try to get status directly
           if (version.status) {
             status = version.status;
-            console.log('  status found:', status);
           } 
           // Try to get status from _doc
           else if (version._doc && version._doc.status) {
             status = version._doc.status;
-            console.log('  status found from _doc:', status);
-          } 
-          else {
-            console.log('  no status in version, using default');
           }
-        } else {
-          console.log('  no versions found, using default status');
         }
         
         return (
