@@ -286,6 +286,7 @@ export const DatasetTable: React.FC = () => {
             filename={dataset.filename}
             status={status}
             onDelete={() => fetchDatasets(activeStatus)}
+            variant="dropdown"
           />
         );
       },
