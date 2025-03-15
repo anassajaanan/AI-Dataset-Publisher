@@ -40,6 +40,8 @@ The supervisor review interface allows authorized users to:
 - Reject datasets with comments explaining the reason
 - Track the status of all datasets in the system
 
+For detailed information about the Supervisor Review Interface, see [Supervisor Review Interface](./supervisor-review.md).
+
 ### 4. Status Tracking
 
 Datasets can have the following statuses:

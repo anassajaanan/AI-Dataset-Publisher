@@ -7,6 +7,7 @@ This section provides documentation for the features implemented in the Dataset 
 - [Dataset Upload and Processing](./upload-processing.md) - Upload, validate, and process dataset files
 - [AI-Powered Metadata Generation](./metadata-generation.md) - Generate metadata using AI services
 - [Publishing Workflow and Review System](./publishing-workflow.md) - Manage the dataset publishing workflow
+- [Supervisor Review Interface](./supervisor-review.md) - Review, approve, or reject datasets
 
 ## Feature Overview
 
