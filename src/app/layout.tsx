@@ -1,9 +1,11 @@
+"use client"
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { Toaster } from "@/components/ui/sonner";
-import { NavBar } from "@/components/ui/tubelight-navbar";
+import { MainNavigation } from "@/components/ui/main-navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,16 +27,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Define navigation items for the NavBar with string icon names
-  const navItems = [
-    { name: 'Home', url: '/', icon: 'Home' },
-    { name: 'Features', url: '/#features', icon: 'CheckCircle' },
-    { name: 'How It Works', url: '/#how-it-works', icon: 'BarChart' },
-    { name: 'Upload', url: '/upload', icon: 'Upload' },
-    { name: 'Dashboard', url: '/dashboard', icon: 'LayoutDashboard' },
-    { name: 'Supervisor', url: '/supervisor/dashboard', icon: 'Shield' }
-  ];
-
   return (
     <html lang="en">
       <body
@@ -49,7 +41,7 @@ export default function RootLayout({
         </header>
         
         {/* TubeLight NavBar */}
-        <NavBar items={navItems} className="sm:top-4" />
+        <MainNavigation />
         
         <main className="flex-1 pt-8">
           {children}

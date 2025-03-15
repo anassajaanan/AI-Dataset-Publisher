@@ -6,11 +6,12 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import * as LucideIcons from "lucide-react"
 import { cn } from "@/lib/utils"
+import { LucideIcon } from "lucide-react"
 
 interface NavItem {
   name: string
   url: string
-  icon: string
+  icon: LucideIcon
 }
 
 interface NavBarProps {
@@ -20,7 +21,7 @@ interface NavBarProps {
 
 export function NavBar({ items, className }: NavBarProps) {
   const pathname = usePathname()
-  const [activeTab, setActiveTab] = useState("")
+  const [activeTab, setActiveTab] = useState(items[0].name)
   const [isMobile, setIsMobile] = useState(false)
 
   // Set initial active tab based on pathname
@@ -106,8 +107,7 @@ export function NavBar({ items, className }: NavBarProps) {
     >
       <div className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
         {items.map((item) => {
-          // Dynamically get the icon component from Lucide
-          const IconComponent = LucideIcons[item.icon as keyof typeof LucideIcons] || LucideIcons.Circle
+          const Icon = item.icon
           const isActive = activeTab === item.name
 
           return (
@@ -123,7 +123,7 @@ export function NavBar({ items, className }: NavBarProps) {
             >
               <span className="hidden md:inline">{item.name}</span>
               <span className="md:hidden">
-                <IconComponent size={18} strokeWidth={2.5} />
+                <Icon size={18} strokeWidth={2.5} />
               </span>
               {isActive && (
                 <motion.div
