@@ -46,12 +46,28 @@ export async function GET(
     let metadata = null;
     if (versions.length > 0) {
       metadata = await DatasetMetadata.findOne({ versionId: versions[0]._id }).lean();
+      
+      // Ensure keywords are properly mapped for UI consumption
+      if (metadata) {
+        // Make sure keywords and keywordsArabic are always arrays
+        metadata.keywords = metadata.keywords || [];
+        metadata.keywordsArabic = metadata.keywordsArabic || [];
+        
+        // For Arabic-only content, ensure keywordsArabic has content
+        if (metadata.language === 'ar' && (!metadata.keywordsArabic || metadata.keywordsArabic.length === 0)) {
+          metadata.keywordsArabic = metadata.keywords;
+        }
+      }
     }
     
     // Return dataset with versions and metadata
     return NextResponse.json({
       ...dataset.toObject(),
-      versions,
+      id: dataset._id.toString(), // Add id property for consistency
+      versions: versions.map(v => ({
+        ...v,
+        id: v._id.toString() // Add id property to each version
+      })),
       metadata
     });
   } catch (error) {
@@ -65,24 +81,24 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
   try {
     // Connect to MongoDB
     await connectToDatabase();
     
-    // Ensure params.id is a string
-    const datasetId = params.id;
+    // Ensure params.id is a string and valid
+    const datasetId = context.params.id;
+    
+    console.log('DELETE request for dataset ID:', datasetId);
     
     if (!datasetId || !mongoose.Types.ObjectId.isValid(datasetId)) {
+      console.error('Invalid dataset ID format:', datasetId);
       return NextResponse.json(
         { message: 'Invalid dataset ID format' },
         { status: 400 }
       );
     }
-    
-    // Import models
-    const { DatasetVersion, DatasetMetadata } = await import('@/lib/db/models');
     
     // Check if the dataset exists
     const dataset = await Dataset.findById(datasetId);
@@ -127,7 +143,9 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting dataset:', error);
     return NextResponse.json(
-      { message: 'An error occurred while deleting the dataset' },
+      { message: 'An error occurred while deleting the dataset', 
+        error: error instanceof Error ? error.message : String(error) 
+      },
       { status: 500 }
     );
   }

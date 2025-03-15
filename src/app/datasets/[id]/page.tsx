@@ -62,6 +62,15 @@ export default function DatasetPage({ params }: DatasetPageProps) {
         
         const data = await response.json();
         setDataset(data);
+        
+        // Set initial activeTab based on metadata language
+        if (data.metadata && data.metadata.language) {
+          if (data.metadata.language === 'ar') {
+            setActiveTab('arabic');
+          } else {
+            setActiveTab('english');
+          }
+        }
       } catch (err: any) {
         setError(err.message || 'An error occurred');
       } finally {
@@ -110,7 +119,9 @@ export default function DatasetPage({ params }: DatasetPageProps) {
     description: metadata.description,
     descriptionArabic: metadata.descriptionArabic,
     tags: metadata.keywords || [],
-    category: metadata.license || 'General'
+    tagsArabic: metadata.keywordsArabic || metadata.keywords || [],
+    category: metadata.category || 'General',
+    categoryArabic: metadata.categoryArabic || metadata.category || 'General'
   } : null;
   
   const formatDate = (dateString: Date) => {
@@ -309,17 +320,17 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                   <Tag className="h-5 w-5 text-primary" />
                   <CardTitle>Metadata</CardTitle>
                 </div>
-                <div className="flex border rounded-md overflow-hidden">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className={`relative px-4 py-2 rounded-none ${activeTab === 'english' ? 'bg-primary/10 text-primary' : ''}`}
-                    onClick={() => setActiveTab('english')}
-                  >
-                    English
-                  </Button>
-                  
-                  {formattedMetadata.titleArabic && (
+                {metadata.language === 'both' && (
+                  <div className="flex border rounded-md overflow-hidden">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className={`relative px-4 py-2 rounded-none ${activeTab === 'english' ? 'bg-primary/10 text-primary' : ''}`}
+                      onClick={() => setActiveTab('english')}
+                    >
+                      English
+                    </Button>
+                    
                     <Button 
                       variant="ghost" 
                       size="sm"
@@ -329,14 +340,14 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                       <Globe className="h-4 w-4 mr-2" />
                       Arabic
                     </Button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </CardHeader>
             
             <CardContent className="space-y-6">
               {/* English Metadata */}
-              {activeTab === 'english' && (
+              {(metadata.language === 'en' || (metadata.language === 'both' && activeTab === 'english')) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
@@ -371,25 +382,27 @@ export default function DatasetPage({ params }: DatasetPageProps) {
               )}
               
               {/* Arabic Metadata */}
-              {activeTab === 'arabic' && formattedMetadata.titleArabic && (
+              {(metadata.language === 'ar' || (metadata.language === 'both' && activeTab === 'arabic')) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir="rtl">
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">العنوان</h3>
-                      <p className="text-lg font-medium">{formattedMetadata.titleArabic}</p>
+                      <p className="text-lg font-medium">{formattedMetadata.titleArabic || formattedMetadata.title}</p>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">الفئة</h3>
                       <Badge variant="secondary" className="text-sm font-normal">
-                        {formattedMetadata.category}
+                        {formattedMetadata.categoryArabic || formattedMetadata.category}
                       </Badge>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">الكلمات المفتاحية</h3>
                       <div className="flex flex-wrap gap-2">
-                        {formattedMetadata.tags && formattedMetadata.tags.map((tag: string, index: number) => (
+                        {(formattedMetadata.tagsArabic && formattedMetadata.tagsArabic.length > 0 
+                          ? formattedMetadata.tagsArabic 
+                          : formattedMetadata.tags).map((tag: string, index: number) => (
                           <Badge key={index} variant="outline" className="bg-primary/5">
                             {tag}
                           </Badge>
@@ -400,7 +413,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                   
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">الوصف</h3>
-                    <p className="text-foreground whitespace-pre-line">{formattedMetadata.descriptionArabic}</p>
+                    <p className="text-foreground whitespace-pre-line">{formattedMetadata.descriptionArabic || formattedMetadata.description}</p>
                   </div>
                 </div>
               )}

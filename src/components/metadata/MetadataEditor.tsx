@@ -40,7 +40,9 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
     description: '',
     descriptionArabic: '',
     tags: [],
-    category: ''
+    tagsArabic: [],
+    category: '',
+    categoryArabic: ''
   });
   
   // State for workflow
@@ -79,8 +81,27 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
             description: dbMetadata.description || '',
             descriptionArabic: dbMetadata.descriptionArabic || '',
             tags: dbMetadata.keywords || [],
-            category: dbMetadata.license || 'General'
+            tagsArabic: dbMetadata.keywordsArabic || dbMetadata.keywords || [],
+            category: dbMetadata.category || 'General',
+            categoryArabic: dbMetadata.categoryArabic || dbMetadata.category || 'General'
           });
+          
+          // Set language based on the metadata
+          if (dbMetadata.language) {
+            setLanguage(dbMetadata.language);
+          } else {
+            // Determine language based on which fields are filled
+            const hasEnglish = dbMetadata.title && dbMetadata.description;
+            const hasArabic = dbMetadata.titleArabic && dbMetadata.descriptionArabic;
+            
+            if (hasEnglish && hasArabic) {
+              setLanguage('both');
+            } else if (hasArabic) {
+              setLanguage('ar');
+            } else {
+              setLanguage('en');
+            }
+          }
           
           // If metadata exists, go to editing but still require AI generation first
           if (dbMetadata.title && dbMetadata.description) {
@@ -154,7 +175,9 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
           description: option.description,
           descriptionArabic: '',
           tags: option.tags || [],
-          category: option.category
+          tagsArabic: [],
+          category: option.category,
+          categoryArabic: ''
         });
       } else if (language === 'ar') {
         setMetadata({
@@ -163,7 +186,9 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
           description: '',
           descriptionArabic: option.description,
           tags: option.tags || [],
-          category: option.category
+          tagsArabic: [],
+          category: option.category,
+          categoryArabic: ''
         });
       } else if (language === 'both') {
         // For bilingual options, we expect titleArabic and descriptionArabic fields
@@ -173,7 +198,9 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
           description: option.description,
           descriptionArabic: (option as any).descriptionArabic || '',
           tags: option.tags || [],
-          category: option.category
+          tagsArabic: (option as any).tagsArabic || option.tags || [],
+          category: option.category,
+          categoryArabic: (option as any).categoryArabic || option.category || ''
         });
       }
       
@@ -190,17 +217,36 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
     setError(null);
     
     try {
-      // Map UI format to database model
+      // Use the selected language state instead of inferring from fields
+      const metadataLanguage = language;
+
+      // Validate based on selected language
+      if (metadataLanguage === 'ar') {
+        if (!metadata.titleArabic && !metadata.title) {
+          setError('يجب تقديم عنوان عربي إما في الحقل العربي أو الحقل الرئيسي');
+          return;
+        }
+        if (!metadata.descriptionArabic && !metadata.description) {
+          setError('يجب تقديم وصف عربي إما في الحقل العربي أو الحقل الرئيسي');
+          return;
+        }
+      }
+
+      // Prepare data for API
       const dbMetadata = {
-        title: metadata.title,
-        titleArabic: metadata.titleArabic,
-        description: metadata.description,
-        descriptionArabic: metadata.descriptionArabic,
-        tags: metadata.tags, // This will be mapped to keywords in the API
-        license: metadata.category || 'CC BY 4.0',
-        author: 'User' // Default author
+        title: metadata.title?.trim() || null,
+        titleArabic: metadata.titleArabic?.trim() || null,
+        description: metadata.description?.trim() || null,
+        descriptionArabic: metadata.descriptionArabic?.trim() || null,
+        tags: metadata.tags,
+        // For Arabic-only content, use the same tags for both fields
+        tagsArabic: metadataLanguage === 'ar' ? metadata.tags : (metadata.tagsArabic || metadata.tags),
+        category: metadata.category || 'General',
+        categoryArabic: metadata.categoryArabic || metadata.category || 'General',
+        author: 'User',
+        language: metadataLanguage
       };
-      
+
       const response = await axios.put(`/api/datasets/${datasetId}/metadata`, {
         metadata: dbMetadata
       });
@@ -211,6 +257,9 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
         if (onSave) {
           onSave(metadata);
         }
+        
+        // Redirect to the dataset details page after successful save
+        router.push(`/datasets/${datasetId}`);
       }
     } catch (error) {
       console.error('Error saving metadata:', error);
@@ -432,21 +481,41 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
                   </div>
                 )}
                 
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Tags:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {metadata.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary">
-                        {tag}
-                      </Badge>
-                    ))}
+                {language === 'ar' ? (
+                  <div dir="rtl" lang="ar">
+                    <p className="text-sm text-muted-foreground mb-1 text-right">الكلمات المفتاحية:</p>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {metadata.tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Tags:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {metadata.tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Category:</p>
-                  <p>{metadata.category}</p>
-                </div>
+                {language === 'ar' ? (
+                  <div dir="rtl" lang="ar">
+                    <p className="text-sm text-muted-foreground mb-1 text-right">الفئة:</p>
+                    <p className="text-right">{metadata.category}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Category:</p>
+                    <p>{metadata.category}</p>
+                  </div>
+                )}
               </CardContent>
               
               <CardFooter>
@@ -479,7 +548,13 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
               </Button>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+              }} 
+              className="space-y-6"
+            >
               {(language === 'en' || language === 'both') && (
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -528,6 +603,19 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
                       onChange={(e) => setMetadata({ ...metadata, descriptionArabic: e.target.value })}
                       placeholder="أدخل وصفًا لمجموعة البيانات الخاصة بك"
                       rows={5}
+                      dir="rtl"
+                      lang="ar"
+                      className="text-right"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="categoryArabic" className="text-right block">الفئة</Label>
+                    <Input
+                      id="categoryArabic"
+                      value={metadata.categoryArabic || ''}
+                      onChange={(e) => setMetadata({ ...metadata, categoryArabic: e.target.value })}
+                      placeholder="أدخل فئة لمجموعة البيانات الخاصة بك"
                       dir="rtl"
                       lang="ar"
                       className="text-right"
@@ -601,6 +689,21 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
               </div>
               
               <div className="flex justify-end gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={saveDraft} 
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Draft'
+                  )}
+                </Button>
                 <Button type="submit" disabled={isSaving}>
                   {isSaving ? (
                     <>

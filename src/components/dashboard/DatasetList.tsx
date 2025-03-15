@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
-import { Trash2 } from 'lucide-react';
+import { DatasetActions } from './DatasetActions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -133,6 +133,7 @@ export const DatasetList: React.FC = () => {
   };
 
   const getStatusLabel = (status: string) => {
+    if (!status) return 'Unknown';
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
@@ -270,49 +271,12 @@ export const DatasetList: React.FC = () => {
                     </td>
                     <td className="px-4 py-3">{formatDate(dataset.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/datasets/${datasetId}`}
-                          className="text-primary hover:underline"
-                        >
-                          View
-                        </Link>
-                        {isDraft && (
-                          <>
-                            <Link
-                              href={`/datasets/${datasetId}/edit`}
-                              className="text-primary hover:underline"
-                            >
-                              Edit
-                            </Link>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <button className="text-red-600 hover:underline">
-                                  Delete
-                                </button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the dataset
-                                    "{dataset.filename}" and all its associated data.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteDataset(datasetId)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    {deletingId === datasetId ? 'Deleting...' : 'Delete'}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </>
-                        )}
-                      </div>
+                      <DatasetActions 
+                        datasetId={datasetId} 
+                        filename={dataset.filename}
+                        status={latestVersion?.status}
+                        onDelete={fetchDatasets}
+                      />
                     </td>
                   </tr>
                 );

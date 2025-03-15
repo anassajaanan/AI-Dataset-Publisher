@@ -10,6 +10,7 @@ import { FileText, Search, Upload, Filter, Calendar, Database } from "lucide-rea
 import connectToDatabase from "@/lib/db/mongodb";
 import { Dataset, DatasetVersion } from "@/lib/db/models";
 import mongoose from "mongoose";
+import { DatasetActions } from "@/components/dashboard/DatasetActions";
 
 export const metadata: Metadata = {
   title: "Datasets - Dataset Publishing Platform",
@@ -171,12 +172,13 @@ export default async function DatasetsPage() {
                         Uploaded on {formatDate(dataset.createdAt)}
                       </div>
                     </CardContent>
-                    <CardFooter>
-                      <Button asChild variant="outline" className="w-full">
-                        <Link href={`/datasets/${dataset._id}`}>
-                          View Details
-                        </Link>
-                      </Button>
+                    <CardFooter className="flex flex-col">
+                      <DatasetActions 
+                        datasetId={dataset._id}
+                        filename={dataset.filename}
+                        status={latestVersion.status}
+                        variant="card"
+                      />
                     </CardFooter>
                   </Card>
                 );
@@ -221,12 +223,13 @@ export default async function DatasetsPage() {
                         Uploaded on {formatDate(dataset.createdAt)}
                       </div>
                     </CardContent>
-                    <CardFooter>
-                      <Button asChild variant="outline" className="w-full">
-                        <Link href={`/datasets/${dataset._id}`}>
-                          View Details
-                        </Link>
-                      </Button>
+                    <CardFooter className="flex flex-col">
+                      <DatasetActions 
+                        datasetId={dataset._id}
+                        filename={dataset.filename}
+                        status={latestVersion.status}
+                        variant="card"
+                      />
                     </CardFooter>
                   </Card>
                 );
@@ -270,12 +273,13 @@ export default async function DatasetsPage() {
                         Uploaded on {formatDate(dataset.createdAt)}
                       </div>
                     </CardContent>
-                    <CardFooter>
-                      <Button asChild variant="outline" className="w-full">
-                        <Link href={`/datasets/${dataset._id}`}>
-                          View Details
-                        </Link>
-                      </Button>
+                    <CardFooter className="flex flex-col">
+                      <DatasetActions 
+                        datasetId={dataset._id}
+                        filename={dataset.filename}
+                        status={latestVersion.status}
+                        variant="card"
+                      />
                     </CardFooter>
                   </Card>
                 );
@@ -319,12 +323,13 @@ export default async function DatasetsPage() {
                         Uploaded on {formatDate(dataset.createdAt)}
                       </div>
                     </CardContent>
-                    <CardFooter>
-                      <Button asChild variant="outline" className="w-full">
-                        <Link href={`/datasets/${dataset._id}`}>
-                          View Details
-                        </Link>
-                      </Button>
+                    <CardFooter className="flex flex-col">
+                      <DatasetActions 
+                        datasetId={dataset._id}
+                        filename={dataset.filename}
+                        status={latestVersion.status}
+                        variant="card"
+                      />
                     </CardFooter>
                   </Card>
                 );

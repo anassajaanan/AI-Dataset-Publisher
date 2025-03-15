@@ -20,6 +20,8 @@ const MetadataOption = z.object({
 const BilingualMetadataOption = MetadataOption.extend({
   titleArabic: z.string(),
   descriptionArabic: z.string(),
+  tagsArabic: z.array(z.string()),
+  categoryArabic: z.string(),
 });
 
 // Define the schema for the full response with exactly three options
@@ -45,7 +47,9 @@ export interface GeneratedMetadata {
   description: string;
   descriptionArabic?: string;
   tags: string[];
+  tagsArabic?: string[];
   category: string;
+  categoryArabic?: string;
 }
 
 // Custom error to be thrown when metadata generation fails
@@ -133,7 +137,9 @@ export const generateMetadata = async (
       "description": "string (in English)",
       "descriptionArabic": "string (in Arabic)",
       "tags": ["string (in English)"],
-      "category": "string (in English)"
+      "tagsArabic": ["string (in Arabic)"],
+      "category": "string (in English)",
+      "categoryArabic": "string (in Arabic)"
     },
     {
       "title": "string (in English)",
@@ -141,7 +147,9 @@ export const generateMetadata = async (
       "description": "string (in English)",
       "descriptionArabic": "string (in Arabic)",
       "tags": ["string (in English)"],
-      "category": "string (in English)"
+      "tagsArabic": ["string (in Arabic)"],
+      "category": "string (in English)",
+      "categoryArabic": "string (in Arabic)"
     },
     {
       "title": "string (in English)",
@@ -149,11 +157,13 @@ export const generateMetadata = async (
       "description": "string (in English)",
       "descriptionArabic": "string (in Arabic)",
       "tags": ["string (in English)"],
-      "category": "string (in English)"
+      "tagsArabic": ["string (in Arabic)"],
+      "category": "string (in English)",
+      "categoryArabic": "string (in Arabic)"
     }
   ]
 }`;
-    languageInstructions = "Generate metadata in both English and Arabic. Provide English versions in the 'title', 'description', 'tags', and 'category' fields, and Arabic translations in the 'titleArabic' and 'descriptionArabic' fields.";
+    languageInstructions = "Generate metadata in both English and Arabic. Provide English versions in the 'title', 'description', 'tags', and 'category' fields, and Arabic translations in the 'titleArabic', 'descriptionArabic', 'tagsArabic', and 'categoryArabic' fields.";
   }
 
   // Build the prompt including instructions and context.

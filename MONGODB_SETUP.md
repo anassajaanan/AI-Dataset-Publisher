@@ -80,11 +80,17 @@ Stores version information for datasets:
 Stores metadata for datasets:
 - `_id`: Unique identifier
 - `datasetId`: Reference to the dataset
-- `title`: Title of the dataset
-- `description`: Description of the dataset
-- `keywords`: Array of keywords
-- `license`: License information
+- `versionId`: Reference to the dataset version
+- `title`: Title of the dataset (English)
+- `titleArabic`: Title of the dataset (Arabic)
+- `description`: Description of the dataset (English)
+- `descriptionArabic`: Description of the dataset (Arabic)
+- `keywords`: Array of keywords/tags (English)
+- `keywordsArabic`: Array of keywords/tags (Arabic)
+- `category`: Dataset category (English)
+- `categoryArabic`: Dataset category (Arabic)
 - `author`: Author of the dataset
+- `language`: Language setting ('en', 'ar', or 'both')
 - `createdAt`: Timestamp when the metadata was created
 - `updatedAt`: Timestamp when the metadata was last updated
 

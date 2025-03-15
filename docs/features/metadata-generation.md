@@ -76,8 +76,11 @@ Each language mode uses a different schema for validation and has specific promp
     "description": "string",
     "descriptionArabic": "string (if available)",
     "keywords": ["string"],
-    "license": "string",
-    "author": "string"
+    "keywordsArabic": ["string (if available)"],
+    "category": "string",
+    "categoryArabic": "string (if available)",
+    "author": "string",
+    "language": "en | ar | both"
   }
 }
 ```
@@ -93,65 +96,14 @@ Each language mode uses a different schema for validation and has specific promp
     "description": "string",
     "descriptionArabic": "string (optional)",
     "tags": ["string"],
-    "license": "string",
-    "author": "string"
+    "tagsArabic": ["string (optional)"],
+    "category": "string",
+    "categoryArabic": "string (optional)",
+    "author": "string",
+    "language": "en | ar | both"
   }
 }
 ```
 
 **Response**:
-```json
-{
-  "message": "Metadata updated successfully",
-  "metadata": {
-    // Updated metadata object
-  }
-}
 ```
-
-## User Interface
-
-The MetadataEditor component provides a comprehensive interface for working with generated metadata:
-
-1. **Language Selection**: Users can choose between English, Arabic, or bilingual metadata
-2. **Generation**: Initiates the AI-powered metadata generation process
-3. **Option Selection**: Displays multiple metadata options for the user to choose from
-4. **Editing**: Allows users to edit the selected metadata with proper language support
-5. **Tag Management**: Interface for adding and removing tags
-6. **Saving**: Options to save drafts or submit the final metadata
-
-### RTL Support
-
-The component includes proper right-to-left (RTL) support for Arabic content:
-
-- Text alignment is automatically adjusted based on the language
-- Input fields and text areas have appropriate directionality
-- Arabic labels and placeholders are provided for better user experience
-
-## Schema Validation
-
-The metadata generation service uses Zod schemas to validate the structure of generated metadata:
-
-```typescript
-// English metadata schema
-const MetadataOption = z.object({
-  title: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-  category: z.string(),
-});
-
-// Bilingual metadata schema
-const BilingualMetadataOption = MetadataOption.extend({
-  titleArabic: z.string(),
-  descriptionArabic: z.string(),
-});
-```
-
-## Future Improvements
-
-1. **Unit Testing**: Add comprehensive tests for the metadata generation service
-2. **Additional Languages**: Extend support to more languages beyond English and Arabic
-3. **Enhanced AI Models**: Explore fine-tuning models specifically for dataset metadata generation
-4. **Caching**: Implement caching mechanisms to improve performance and reduce API calls
-5. **Offline Mode**: Add fallback mechanisms for when the AI service is unavailable 

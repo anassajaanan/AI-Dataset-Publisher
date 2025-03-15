@@ -340,29 +340,32 @@ The platform supports locale-specific content for certain features:
 
 ## Metadata Bilingual Support
 
-The platform supports bilingual metadata for datasets:
+The platform supports bilingual metadata for datasets with full Arabic support:
 
 ```typescript
 // Example of bilingual metadata structure
 interface DatasetMetadata {
-  title: {
-    en: string;
-    ar: string;
-  };
-  description: {
-    en: string;
-    ar: string;
-  };
-  tags: {
-    en: string[];
-    ar: string[];
-  };
-  category: {
-    en: string;
-    ar: string;
-  };
+  // English fields
+  title: string;
+  description: string;
+  keywords: string[];
+  category: string;
+  
+  // Arabic fields
+  titleArabic: string;
+  descriptionArabic: string;
+  keywordsArabic: string[];
+  categoryArabic: string;
+  
+  // Language setting
+  language: 'en' | 'ar' | 'both';
 }
 ```
+
+When the language is set to 'ar' (Arabic only), the system ensures that:
+1. Arabic content can be stored in either the main fields or Arabic-specific fields
+2. Tags/keywords are properly stored in both `keywords` and `keywordsArabic` fields
+3. The UI displays the appropriate content based on the language setting
 
 The metadata editor allows users to edit metadata in both languages:
 
