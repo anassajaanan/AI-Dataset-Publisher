@@ -3,32 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ArrowRight, Upload, Database, Brain, BookOpen, CheckCircle } from "lucide-react";
+import { Hero } from "@/components/ui/animated-hero";
 
 export default function Home() {
   return (
     <div className="container mx-auto px-4 py-12 space-y-16">
       {/* Hero Section */}
-      <section className="text-center space-y-6 py-12">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-          Dataset Publishing Platform
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-          A modern platform for researchers and data scientists to upload, 
-          document, and publish their datasets with AI-powered metadata generation.
-        </p>
-        <div className="flex flex-wrap justify-center gap-4 pt-4">
-          <Button asChild size="lg" className="gap-2">
-            <Link href="/upload">
-              Get Started <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/datasets">
-              Browse Datasets
-            </Link>
-          </Button>
-        </div>
-      </section>
+      <Hero />
 
       <Separator />
 
