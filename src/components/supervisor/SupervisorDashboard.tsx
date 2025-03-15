@@ -57,33 +57,21 @@ interface Metadata {
 }
 
 export function SupervisorDashboardContent() {
-  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [allDatasets, setAllDatasets] = useState<Dataset[]>([]);
+  const [filteredDatasets, setFilteredDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('review');
 
+  // Fetch all datasets on initial load
   useEffect(() => {
-    const fetchDatasets = async () => {
+    const fetchAllDatasets = async () => {
       try {
         setLoading(true);
-        const params = new URLSearchParams();
         
-        // Map the tab values to the correct status values in the database
-        let statusParam;
-        if (activeTab === 'review') {
-          statusParam = 'review';
-        } else if (activeTab === 'published') {
-          statusParam = 'published';
-        } else if (activeTab === 'rejected') {
-          statusParam = 'rejected';
-        }
-        
-        if (statusParam) {
-          params.append('status', statusParam);
-        }
-        
-        const response = await axios.get(`/api/datasets?${params.toString()}`);
-        console.log('Datasets received:', response.data.datasets.map((d: Dataset) => ({ 
+        // Fetch all datasets without status filter
+        const response = await axios.get('/api/datasets');
+        console.log('All datasets received:', response.data.datasets.map((d: Dataset) => ({ 
           _id: d._id, 
           id: d.id,
           filename: d.filename,
@@ -135,7 +123,7 @@ export function SupervisorDashboardContent() {
           };
         });
 
-        setDatasets(formattedDatasets);
+        setAllDatasets(formattedDatasets);
         setError(null);
       } catch (err: any) {
         console.error('Error fetching datasets:', err);
@@ -145,19 +133,33 @@ export function SupervisorDashboardContent() {
       }
     };
 
-    fetchDatasets();
-  }, [activeTab]);
+    fetchAllDatasets();
+  }, []);
+
+  // Filter datasets based on active tab
+  useEffect(() => {
+    if (allDatasets.length > 0) {
+      if (activeTab === 'all') {
+        setFilteredDatasets(allDatasets);
+      } else {
+        const filtered = allDatasets.filter(dataset => 
+          dataset.versions.some(version => version.status === activeTab)
+        );
+        setFilteredDatasets(filtered);
+      }
+    }
+  }, [activeTab, allDatasets]);
 
   // Filter datasets by status
-  const pendingReview = datasets.filter(d => 
+  const pendingReview = allDatasets.filter(d => 
     d.versions.some(v => v.status === 'review')
   );
   
-  const approved = datasets.filter(d => 
+  const approved = allDatasets.filter(d => 
     d.versions.some(v => v.status === 'published')
   );
   
-  const rejected = datasets.filter(d => 
+  const rejected = allDatasets.filter(d => 
     d.versions.some(v => v.status === 'rejected')
   );
   
@@ -393,4 +395,4 @@ export function SupervisorDashboardContent() {
       </TabsContent>
     </Tabs>
   );
-} 
+}
