@@ -6,7 +6,7 @@ import { promises as fsPromises } from 'fs';
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 
 // Ensure the upload directory exists
-async function ensureUploadDir(datasetId: string): Promise<string> {
+async function ensureUploadDir(datasetId: string, version?: string): Promise<string> {
   // Create the base uploads directory if it doesn't exist
   if (!fs.existsSync(UPLOAD_DIR)) {
     await fsPromises.mkdir(UPLOAD_DIR, { recursive: true });
@@ -16,6 +16,15 @@ async function ensureUploadDir(datasetId: string): Promise<string> {
   const datasetDir = path.join(UPLOAD_DIR, datasetId);
   if (!fs.existsSync(datasetDir)) {
     await fsPromises.mkdir(datasetDir, { recursive: true });
+  }
+  
+  // If a version is specified, create a subdirectory for it
+  if (version) {
+    const versionDir = path.join(datasetDir, `v${version}`);
+    if (!fs.existsSync(versionDir)) {
+      await fsPromises.mkdir(versionDir, { recursive: true });
+    }
+    return versionDir;
   }
   
   return datasetDir;
@@ -32,16 +41,17 @@ export class FileStorageError extends Error {
  * Saves a file to the local file system
  * @param file The file to save
  * @param datasetId The ID of the dataset the file belongs to
+ * @param version Optional version identifier
  * @returns The path where the file was saved
  */
-export async function saveFile(file: File, datasetId: string): Promise<string> {
+export async function saveFile(file: File, datasetId: string, version?: string): Promise<string> {
   try {
     // Ensure the directory exists
-    const datasetDir = await ensureUploadDir(datasetId);
+    const targetDir = await ensureUploadDir(datasetId, version);
     
     // Create a safe filename
     const filename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const filePath = path.join(datasetDir, filename);
+    const filePath = path.join(targetDir, filename);
     
     // Log file information for debugging
     console.log('Saving file:', {
@@ -49,8 +59,9 @@ export async function saveFile(file: File, datasetId: string): Promise<string> {
       safeFilename: filename,
       size: file.size,
       type: file.type,
-      datasetDir,
-      filePath
+      targetDir,
+      filePath,
+      version: version || 'default'
     });
     
     // Convert the file to an ArrayBuffer
@@ -70,11 +81,14 @@ export async function saveFile(file: File, datasetId: string): Promise<string> {
     const stats = await fsPromises.stat(filePath);
     console.log('File saved successfully:', {
       path: filePath,
-      size: stats.size
+      size: stats.size,
+      version: version || 'default'
     });
     
     // Return the relative path (for storage in the database)
-    return path.join('uploads', datasetId, filename);
+    return version 
+      ? path.join('uploads', datasetId, `v${version}`, filename)
+      : path.join('uploads', datasetId, filename);
   } catch (error) {
     console.error('Error saving file:', error);
     throw new FileStorageError(`Failed to save file: ${error instanceof Error ? error.message : 'Unknown error'}`);

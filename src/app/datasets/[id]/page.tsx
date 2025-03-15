@@ -30,6 +30,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import NewVersionDialog from '@/components/datasets/NewVersionDialog';
 
 interface DatasetPageProps {
   params: {
@@ -69,11 +70,11 @@ interface DatasetType {
 export default function DatasetPage({ params }: DatasetPageProps) {
   const [activeTab, setActiveTab] = useState<'english' | 'arabic'>('english');
   
-  // Unwrap params promise using React.use()
-  const { id: datasetId } = React.use(params);
+  // Get dataset ID from params
+  const datasetId = params.id;
   
   // Fetch dataset data
-  const [dataset, setDataset] = useState<any>(null);
+  const [dataset, setDataset] = useState<DatasetType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -92,7 +93,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
 
         setDataset(dataset);
       } catch (err) {
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
         setLoading(false);
       }
@@ -129,7 +130,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   }
   
   // Get latest version safely
-  const latestVersion = dataset?.versions?.reduce((latest, current) => 
+  const latestVersion = dataset?.versions?.reduce((latest: DatasetVersion, current: DatasetVersion) => 
     current.versionNumber > latest.versionNumber ? current : latest, 
     { versionNumber: -1 } as DatasetVersion
   );
@@ -148,18 +149,34 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   const metadata = dataset.metadata;
   
   // Map metadata properties to UI-friendly format if metadata exists
-  const formattedMetadata = metadata ? {
-    title: metadata.title,
-    titleArabic: metadata.titleArabic,
-    description: metadata.description,
-    descriptionArabic: metadata.descriptionArabic,
-    tags: metadata.keywords || [],
-    tagsArabic: metadata.keywordsArabic || metadata.keywords || [],
-    category: metadata.category || 'General',
-    categoryArabic: metadata.categoryArabic || metadata.category || 'General'
-  } : null;
+  const metadataItems = dataset?.metadata ? [
+    {
+      icon: <FileText className="h-4 w-4" />,
+      label: 'Title',
+      value: dataset.metadata.title,
+      valueArabic: dataset.metadata.titleArabic
+    },
+    {
+      icon: <Info className="h-4 w-4" />,
+      label: 'Description',
+      value: dataset.metadata.description,
+      valueArabic: dataset.metadata.descriptionArabic
+    },
+    {
+      icon: <Tag className="h-4 w-4" />,
+      label: 'Category',
+      value: dataset.metadata.category,
+      valueArabic: dataset.metadata.categoryArabic
+    },
+    {
+      icon: <Database className="h-4 w-4" />,
+      label: 'Keywords',
+      value: dataset.metadata.keywords.join(', '),
+      valueArabic: dataset.metadata.keywordsArabic?.join(', ')
+    }
+  ] : [];
   
-  const formatDate = (dateString: Date) => {
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -242,7 +259,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
           </div>
           
           <div className="flex gap-2 self-end md:self-auto">
-            {!formattedMetadata ? (
+            {!metadata ? (
               <Button asChild className="shadow-sm">
                 <Link href={`/datasets/${dataset._id}/metadata`}>
                   <Pencil className="h-4 w-4 mr-2" />
@@ -259,8 +276,8 @@ export default function DatasetPage({ params }: DatasetPageProps) {
             )}
             
             {latestVersion.status === 'draft' && (
-              <Button asChild className={!formattedMetadata ? "opacity-50 cursor-not-allowed" : "shadow-sm"} disabled={!formattedMetadata}>
-                <Link href={formattedMetadata ? `/datasets/${dataset._id}/submit` : "#"}>
+              <Button asChild className={!metadata ? "opacity-50 cursor-not-allowed" : "shadow-sm"} disabled={!metadata}>
+                <Link href={metadata ? `/datasets/${dataset._id}/submit` : "#"}>
                   <Send className="h-4 w-4 mr-2" />
                   Submit for Review
                 </Link>
@@ -269,7 +286,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
           </div>
         </div>
         
-        {!formattedMetadata && (
+        {!metadata && (
           <Alert className="bg-amber-50 border-amber-200 text-amber-800">
             <Info className="h-4 w-4 text-amber-800" />
             <AlertTitle>Metadata Required</AlertTitle>
@@ -347,7 +364,7 @@ export default function DatasetPage({ params }: DatasetPageProps) {
           </Card>
         </div>
         
-        {formattedMetadata ? (
+        {metadata ? (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -384,72 +401,28 @@ export default function DatasetPage({ params }: DatasetPageProps) {
               {/* English Metadata */}
               {(metadata.language === 'en' || (metadata.language === 'both' && activeTab === 'english')) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Title</h3>
-                      <p className="text-lg font-medium">{formattedMetadata.title}</p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
-                      <Badge variant="secondary" className="text-sm font-normal">
-                        {formattedMetadata.category}
-                      </Badge>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {formattedMetadata.tags && formattedMetadata.tags.map((tag: string, index: number) => (
-                          <Badge key={index} variant="outline" className="bg-primary/5">
-                            {tag}
-                          </Badge>
-                        ))}
+                  {metadataItems.map((item, index) => (
+                    <div key={index} className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">{item.label}</h3>
+                        <p className="text-lg font-medium">{item.value}</p>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-                    <p className="text-foreground whitespace-pre-line">{formattedMetadata.description}</p>
-                  </div>
+                  ))}
                 </div>
               )}
               
               {/* Arabic Metadata */}
               {(metadata.language === 'ar' || (metadata.language === 'both' && activeTab === 'arabic')) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir="rtl">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">العنوان</h3>
-                      <p className="text-lg font-medium">{formattedMetadata.titleArabic || formattedMetadata.title}</p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">الفئة</h3>
-                      <Badge variant="secondary" className="text-sm font-normal">
-                        {formattedMetadata.categoryArabic || formattedMetadata.category}
-                      </Badge>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">الكلمات المفتاحية</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {(formattedMetadata.tagsArabic && formattedMetadata.tagsArabic.length > 0 
-                          ? formattedMetadata.tagsArabic 
-                          : formattedMetadata.tags).map((tag: string, index: number) => (
-                          <Badge key={index} variant="outline" className="bg-primary/5">
-                            {tag}
-                          </Badge>
-                        ))}
+                  {metadataItems.map((item, index) => (
+                    <div key={index} className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">{item.label}</h3>
+                        <p className="text-lg font-medium">{item.valueArabic || item.value}</p>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">الوصف</h3>
-                    <p className="text-foreground whitespace-pre-line">{formattedMetadata.descriptionArabic || formattedMetadata.description}</p>
-                  </div>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -480,12 +453,35 @@ export default function DatasetPage({ params }: DatasetPageProps) {
           </Card>
         )}
         
-        <Card>
-          <CardHeader>
+        <Card className="mt-6">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
               <CardTitle>Version History</CardTitle>
             </div>
+            {latestVersion && latestVersion.status === 'draft' && (
+              <NewVersionDialog 
+                datasetId={datasetId} 
+                onSuccess={() => {
+                  // Reload the dataset data
+                  setLoading(true);
+                  fetch(`/api/datasets/${datasetId}`)
+                    .then(response => {
+                      if (!response.ok) throw new Error('Failed to fetch dataset');
+                      return response.json();
+                    })
+                    .then(data => {
+                      setDataset(data.dataset);
+                    })
+                    .catch(err => {
+                      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+                    })
+                    .finally(() => {
+                      setLoading(false);
+                    });
+                }}
+              />
+            )}
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
