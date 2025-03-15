@@ -49,13 +49,31 @@ export async function GET(
     // Get metadata for this dataset
     const metadata = await DatasetMetadata.findOne({ datasetId: dataset._id });
     
+    // Transform versions to ensure status is accessible
+    const transformedVersions = versions.map(version => {
+      const versionObj = version.toObject ? version.toObject() : version;
+      return {
+        ...versionObj,
+        id: versionObj._id.toString(),
+        status: versionObj.status || 'draft'
+      };
+    });
+    
+    // Transform metadata if it exists
+    const transformedMetadata = metadata ? 
+      (metadata.toObject ? metadata.toObject() : metadata) : null;
+    
+    if (transformedMetadata) {
+      transformedMetadata.id = transformedMetadata._id.toString();
+    }
+    
     // Return the dataset with versions and metadata
     return NextResponse.json({
       dataset: {
         id: dataset._id.toString(), // Add id property for consistency
         ...dataset.toObject(),
-        versions,
-        metadata
+        versions: transformedVersions,
+        metadata: transformedMetadata
       }
     });
   } catch (error) {

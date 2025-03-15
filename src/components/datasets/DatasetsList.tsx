@@ -21,11 +21,14 @@ function formatDate(dateString: string) {
   }).format(date);
 }
 
-function getStatusColor(status: string) {
+function getStatusColor(status: string | undefined) {
+  if (!status) return 'bg-gray-100 text-gray-800';
+  
   switch (status) {
     case 'draft':
       return 'bg-yellow-100 text-yellow-800';
     case 'submitted':
+    case 'review':
       return 'bg-blue-100 text-blue-800';
     case 'published':
       return 'bg-green-100 text-green-800';
@@ -34,6 +37,11 @@ function getStatusColor(status: string) {
     default:
       return 'bg-gray-100 text-gray-800';
   }
+}
+
+function formatStatus(status: string | undefined): string {
+  if (!status) return 'Unknown';
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 export function DatasetsList() {
@@ -51,7 +59,20 @@ export function DatasetsList() {
           : `/api/datasets?status=${activeTab}`;
         
         const response = await axios.get(url);
-        setDatasets(response.data.datasets);
+        
+        // Transform the data to ensure status is accessible
+        const transformedDatasets = response.data.datasets.map((dataset: any) => {
+          if (dataset.versions && dataset.versions.length > 0) {
+            // Extract status from _doc if available
+            const version = dataset.versions[0];
+            if (version._doc && version._doc.status) {
+              version.status = version._doc.status;
+            }
+          }
+          return dataset;
+        });
+        
+        setDatasets(transformedDatasets);
         setError(null);
       } catch (err: any) {
         console.error('Error fetching datasets:', err);
@@ -92,7 +113,7 @@ export function DatasetsList() {
           <TabsList>
             <TabsTrigger value="all">All Datasets</TabsTrigger>
             <TabsTrigger value="draft">Drafts</TabsTrigger>
-            <TabsTrigger value="submitted">Submitted</TabsTrigger>
+            <TabsTrigger value="review">Submitted</TabsTrigger>
             <TabsTrigger value="published">Published</TabsTrigger>
           </TabsList>
           
@@ -128,9 +149,25 @@ export function DatasetsList() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {datasets.map((dataset: any) => {
-                const latestVersion = dataset.versions && dataset.versions.length > 0 
-                  ? dataset.versions[0] 
-                  : { status: 'draft', versionNumber: 1 };
+                // Extract the latest version and its status
+                let status = 'draft';
+                let versionNumber = 1;
+                
+                if (dataset.versions && dataset.versions.length > 0) {
+                  const version = dataset.versions[0];
+                  
+                  // Try to get status directly
+                  if (version.status) {
+                    status = version.status;
+                  } 
+                  // Try to get status from _doc
+                  else if (version._doc && version._doc.status) {
+                    status = version._doc.status;
+                  }
+                  
+                  // Get version number
+                  versionNumber = version.versionNumber || version._doc?.versionNumber || 1;
+                }
                 
                 return (
                   <Card key={dataset._id || dataset.id} className="transition-all hover:shadow-md">
@@ -140,12 +177,12 @@ export function DatasetsList() {
                           <FileText className="h-5 w-5 text-primary" />
                           <CardTitle className="text-lg">{dataset.filename}</CardTitle>
                         </div>
-                        <Badge className={getStatusColor(latestVersion.status)}>
-                          {latestVersion.status.charAt(0).toUpperCase() + latestVersion.status.slice(1)}
+                        <Badge className={getStatusColor(status)}>
+                          {formatStatus(status)}
                         </Badge>
                       </div>
                       <CardDescription className="pt-1">
-                        {dataset.rowCount.toLocaleString()} rows • {dataset.columns.length} columns
+                        {dataset.rowCount?.toLocaleString() || 0} rows • {dataset.columns?.length || 0} columns
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pb-3">
@@ -158,7 +195,7 @@ export function DatasetsList() {
                       <DatasetActions 
                         datasetId={dataset._id || dataset.id}
                         filename={dataset.filename}
-                        status={latestVersion.status}
+                        status={status}
                         variant="card"
                       />
                     </CardFooter>

@@ -66,13 +66,76 @@ export function SupervisorDashboardContent() {
     const fetchDatasets = async () => {
       try {
         setLoading(true);
-        const url = activeTab === 'all' 
-          ? '/api/datasets' 
-          : `/api/datasets?status=${activeTab}`;
+        const params = new URLSearchParams();
         
-        const response = await axios.get(url);
-        console.log('API Response:', response.data);
-        setDatasets(response.data.datasets || []);
+        // Map the tab values to the correct status values in the database
+        let statusParam;
+        if (activeTab === 'review') {
+          statusParam = 'review';
+        } else if (activeTab === 'published') {
+          statusParam = 'published';
+        } else if (activeTab === 'rejected') {
+          statusParam = 'rejected';
+        }
+        
+        if (statusParam) {
+          params.append('status', statusParam);
+        }
+        
+        const response = await axios.get(`/api/datasets?${params.toString()}`);
+        console.log('Datasets received:', response.data.datasets.map((d: Dataset) => ({ 
+          _id: d._id, 
+          id: d.id,
+          filename: d.filename,
+          status: d.versions?.[0]?.status 
+        })));
+
+        // Transform datasets to match the Dataset interface
+        const formattedDatasets = response.data.datasets.map((dataset: any) => {
+          // Process versions to ensure status is accessible
+          const processedVersions = (dataset.versions || []).map((v: any) => {
+            let status = v.status;
+            
+            // Try to get status from _doc if direct access fails
+            if (!status && v._doc && v._doc.status) {
+              status = v._doc.status;
+            }
+            
+            return {
+              _id: v._id?.toString() || v.id,
+              id: v.id,
+              datasetId: v.datasetId,
+              versionNumber: v.versionNumber || 1,
+              status: status || 'draft',
+              comments: v.comments,
+              createdAt: v.createdAt,
+              updatedAt: v.updatedAt
+            };
+          });
+          
+          return {
+            _id: dataset._id?.toString() || dataset.id,
+            id: dataset.id,
+            filename: dataset.filename,
+            fileSize: dataset.fileSize,
+            rowCount: dataset.rowCount,
+            columns: dataset.columns || [],
+            createdAt: dataset.createdAt,
+            updatedAt: dataset.updatedAt,
+            versions: processedVersions,
+            metadata: dataset.metadata ? {
+              _id: dataset.metadata._id?.toString(),
+              id: dataset.metadata.id,
+              datasetId: dataset.metadata.datasetId,
+              title: dataset.metadata.title,
+              description: dataset.metadata.description,
+              category: dataset.metadata.category,
+              keywords: dataset.metadata.keywords
+            } : null
+          };
+        });
+
+        setDatasets(formattedDatasets);
         setError(null);
       } catch (err: any) {
         console.error('Error fetching datasets:', err);
@@ -86,22 +149,16 @@ export function SupervisorDashboardContent() {
   }, [activeTab]);
 
   // Filter datasets by status
-  const pendingReview = datasets.filter(dataset => 
-    dataset.versions && 
-    dataset.versions.length > 0 && 
-    dataset.versions[0].status === 'review'
+  const pendingReview = datasets.filter(d => 
+    d.versions.some(v => v.status === 'review')
   );
   
-  const approved = datasets.filter(dataset => 
-    dataset.versions && 
-    dataset.versions.length > 0 && 
-    dataset.versions[0].status === 'published'
+  const approved = datasets.filter(d => 
+    d.versions.some(v => v.status === 'published')
   );
   
-  const rejected = datasets.filter(dataset => 
-    dataset.versions && 
-    dataset.versions.length > 0 && 
-    dataset.versions[0].status === 'rejected'
+  const rejected = datasets.filter(d => 
+    d.versions.some(v => v.status === 'rejected')
   );
   
   const formatDate = (dateString: string) => {
@@ -248,7 +305,7 @@ export function SupervisorDashboardContent() {
                           <Database className="h-4 w-4" />
                           <span>{dataset.rowCount?.toLocaleString() || 0} rows</span>
                           <span className="mx-1">•</span>
-                          <span>Approved on {formatDate(dataset.updatedAt)}</span>
+                          <span>Published on {formatDate(dataset.updatedAt)}</span>
                         </div>
                         {dataset.versions && dataset.versions.length > 0 && 
                           getStatusBadge(dataset.versions[0].status)}
@@ -311,11 +368,11 @@ export function SupervisorDashboardContent() {
                       </div>
                     </div>
                     
-                    {dataset.versions && dataset.versions.length > 0 && dataset.versions[0].comments && (
+                    {dataset.metadata && (
                       <div className="mt-4">
-                        <p className="text-sm text-muted-foreground font-medium mb-1">Rejection Reason:</p>
+                        <p className="text-sm text-muted-foreground font-medium mb-1">Description:</p>
                         <p className="text-sm line-clamp-2">
-                          {dataset.versions[0].comments}
+                          {dataset.metadata.description || 'No description provided'}
                         </p>
                       </div>
                     )}

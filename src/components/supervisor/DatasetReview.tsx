@@ -81,10 +81,61 @@ export function DatasetReview({ datasetId }: DatasetReviewProps) {
       try {
         setLoading(true);
         const response = await axios.get(`/api/datasets/${datasetId}`);
-        console.log('API Response:', response.data);
-        setDataset(response.data.dataset || response.data);
+        console.log('Dataset response:', response.data);
+
+        const datasetData = response.data.dataset || response.data;
+        
+        // Process versions to ensure status is accessible
+        const processedVersions = (datasetData.versions || []).map((v: any) => {
+          let status = v.status;
+          
+          // Try to get status from _doc if direct access fails
+          if (!status && v._doc && v._doc.status) {
+            status = v._doc.status;
+          }
+          
+          return {
+            _id: v._id?.toString() || v.id,
+            id: v.id,
+            datasetId: v.datasetId,
+            versionNumber: v.versionNumber || 1,
+            status: status || 'draft',
+            comments: v.comments,
+            createdAt: v.createdAt,
+            updatedAt: v.updatedAt
+          };
+        });
+        
+        // Transform to match Dataset interface
+        const formattedData = {
+          _id: datasetData._id?.toString() || datasetData.id,
+          id: datasetData.id,
+          filename: datasetData.filename,
+          fileSize: datasetData.fileSize,
+          rowCount: datasetData.rowCount,
+          columns: datasetData.columns || [],
+          createdAt: datasetData.createdAt,
+          updatedAt: datasetData.updatedAt,
+          versions: processedVersions,
+          metadata: datasetData.metadata ? {
+            _id: datasetData.metadata._id?.toString() || datasetData.metadata.id,
+            id: datasetData.metadata.id,
+            datasetId: datasetData.metadata.datasetId,
+            title: datasetData.metadata.title,
+            titleArabic: datasetData.metadata.titleArabic,
+            description: datasetData.metadata.description,
+            descriptionArabic: datasetData.metadata.descriptionArabic,
+            category: datasetData.metadata.category,
+            categoryArabic: datasetData.metadata.categoryArabic,
+            keywords: datasetData.metadata.keywords || [],
+            keywordsArabic: datasetData.metadata.keywordsArabic || [],
+            language: datasetData.metadata.language
+          } : null
+        };
+        
+        setDataset(formattedData);
         setError(null);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching dataset:', err);
         setError('Failed to load dataset. Please try again.');
       } finally {
@@ -92,7 +143,9 @@ export function DatasetReview({ datasetId }: DatasetReviewProps) {
       }
     };
 
-    fetchDataset();
+    if (datasetId) {
+      fetchDataset();
+    }
   }, [datasetId]);
 
   const formatDate = (dateString: string) => {
