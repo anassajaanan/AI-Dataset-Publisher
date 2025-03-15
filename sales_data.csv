@@ -1,0 +1,36 @@
+transaction_id,date,customer_id,product_id,product_name,category,quantity,unit_price,total_amount,payment_method,store_id,store_location,sales_rep,discount_applied,tax_amount,shipping_cost,customer_rating
+T-10001,2023-01-15,C-5432,P-1001,Smartphone X,Electronics,1,899.99,899.99,Credit Card,S-101,New York,John Smith,0,74.25,0,4.5
+T-10002,2023-01-15,C-6789,P-2002,Wireless Headphones,Electronics,2,149.99,299.98,PayPal,S-101,New York,John Smith,0,24.75,5.99,5
+T-10003,2023-01-16,C-2345,P-3003,Coffee Maker,Home Appliances,1,79.99,79.99,Debit Card,S-102,Los Angeles,Sarah Davis,10,5.78,0,4
+T-10004,2023-01-16,C-8901,P-4004,Running Shoes,Sports & Outdoors,1,129.99,129.99,Credit Card,S-103,Chicago,Michael Brown,15,9.56,0,4.8
+T-10005,2023-01-17,C-3456,P-5005,Protein Powder,Health & Wellness,2,39.99,79.98,Cash,S-103,Chicago,Michael Brown,0,6.6,0,3.5
+T-10006,2023-01-17,C-9012,P-1001,Smartphone X,Electronics,1,899.99,899.99,Credit Card,S-104,Houston,Emily Johnson,50,37.12,0,5
+T-10007,2023-01-18,C-4567,P-6006,Yoga Mat,Sports & Outdoors,1,24.99,24.99,PayPal,S-102,Los Angeles,Sarah Davis,0,2.06,5.99,4.2
+T-10008,2023-01-18,C-0123,P-7007,Blender,Home Appliances,1,59.99,59.99,Debit Card,S-101,New York,John Smith,0,4.95,0,4.7
+T-10009,2023-01-19,C-5678,P-8008,Desk Lamp,Home & Office,2,34.99,69.98,Credit Card,S-105,Miami,David Wilson,20,4.62,0,3.8
+T-10010,2023-01-19,C-1234,P-9009,Backpack,Fashion,1,49.99,49.99,Cash,S-103,Chicago,Michael Brown,0,4.12,0,4.9
+T-10011,2023-01-20,C-6789,P-1010,Wireless Charger,Electronics,3,29.99,89.97,PayPal,S-101,New York,John Smith,10,6.67,0,4.6
+T-10012,2023-01-20,C-2345,P-2011,Smart Watch,Electronics,1,249.99,249.99,Credit Card,S-104,Houston,Emily Johnson,0,20.62,0,4.3
+T-10013,2023-01-21,C-8901,P-3012,Air Fryer,Home Appliances,1,119.99,119.99,Debit Card,S-102,Los Angeles,Sarah Davis,15,8.5,0,5
+T-10014,2023-01-21,C-3456,P-4013,Dumbbells Set,Sports & Outdoors,1,89.99,89.99,Credit Card,S-103,Chicago,Michael Brown,0,7.42,7.99,4.1
+T-10015,2023-01-22,C-9012,P-5014,Vitamin Supplements,Health & Wellness,2,24.99,49.98,Cash,S-105,Miami,David Wilson,0,4.12,0,3.9
+T-10016,2023-01-22,C-4567,P-6015,Basketball,Sports & Outdoors,1,29.99,29.99,PayPal,S-104,Houston,Emily Johnson,0,2.47,0,4.4
+T-10017,2023-01-23,C-0123,P-7016,Toaster,Home Appliances,1,49.99,49.99,Debit Card,S-101,New York,John Smith,10,3.71,0,4.2
+T-10018,2023-01-23,C-5678,P-8017,Office Chair,Home & Office,1,199.99,199.99,Credit Card,S-102,Los Angeles,Sarah Davis,0,16.5,15.99,4.7
+T-10019,2023-01-24,C-1234,P-9018,Winter Jacket,Fashion,1,159.99,159.99,Cash,S-103,Chicago,Michael Brown,25,9.89,0,4.8
+T-10020,2023-01-24,C-6789,P-1019,Bluetooth Speaker,Electronics,2,79.99,159.98,PayPal,S-105,Miami,David Wilson,0,13.2,0,4.5
+T-10021,2023-01-25,C-2345,P-2020,Laptop,Electronics,1,1299.99,1299.99,Credit Card,S-104,Houston,Emily Johnson,100,99.17,0,5
+T-10022,2023-01-25,C-8901,P-3021,Microwave Oven,Home Appliances,1,149.99,149.99,Debit Card,S-101,New York,John Smith,0,12.37,0,4.3
+T-10023,2023-01-26,C-3456,P-4022,Tennis Racket,Sports & Outdoors,1,89.99,89.99,Credit Card,S-102,Los Angeles,Sarah Davis,0,7.42,0,4.6
+T-10024,2023-01-26,C-9012,P-5023,First Aid Kit,Health & Wellness,1,29.99,29.99,Cash,S-103,Chicago,Michael Brown,0,2.47,0,4.9
+T-10025,2023-01-27,C-4567,P-6024,Fitness Tracker,Electronics,1,99.99,99.99,PayPal,S-105,Miami,David Wilson,10,7.42,0,4.2
+T-10026,2023-01-27,C-0123,P-7025,Coffee Grinder,Home Appliances,1,39.99,39.99,Debit Card,S-104,Houston,Emily Johnson,0,3.3,0,4.7
+T-10027,2023-01-28,C-5678,P-8026,Desk Organizer,Home & Office,2,19.99,39.98,Credit Card,S-101,New York,John Smith,0,3.3,0,4.1
+T-10028,2023-01-28,C-1234,P-9027,Sunglasses,Fashion,1,129.99,129.99,Cash,S-102,Los Angeles,Sarah Davis,15,9.56,0,4.8
+T-10029,2023-01-29,C-6789,P-1028,Tablet,Electronics,1,499.99,499.99,PayPal,S-103,Chicago,Michael Brown,0,41.25,0,4.5
+T-10030,2023-01-29,C-2345,P-2029,Headphones,Electronics,1,199.99,199.99,Credit Card,S-105,Miami,David Wilson,0,16.5,0,4.9
+T-10031,2023-01-30,C-8901,P-3030,Blender Bottle,Home Appliances,2,14.99,29.98,Debit Card,S-104,Houston,Emily Johnson,0,2.47,0,4.3
+T-10032,2023-01-30,C-3456,P-4031,Yoga Block,Sports & Outdoors,2,9.99,19.98,Credit Card,S-101,New York,John Smith,0,1.65,0,4.6
+T-10033,2023-01-31,C-9012,P-5032,Multivitamins,Health & Wellness,1,19.99,19.99,Cash,S-102,Los Angeles,Sarah Davis,0,1.65,0,3.8
+T-10034,2023-01-31,C-4567,P-6033,Jump Rope,Sports & Outdoors,1,14.99,14.99,PayPal,S-103,Chicago,Michael Brown,0,1.24,0,4.7
+T-10035,2023-01-31,C-0123,P-7034,Electric Kettle,Home Appliances,1,49.99,49.99,Debit Card,S-105,Miami,David Wilson,10,3.71,0,4.5
