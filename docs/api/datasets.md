@@ -240,6 +240,57 @@ Retrieves the version history of a dataset.
 }
 ```
 
+### Create New Dataset Version
+
+```
+POST /api/datasets/:datasetId/versions
+```
+
+Creates a new version of a dataset by uploading a new file.
+
+#### Parameters
+
+- `datasetId`: ID of the dataset to create a new version for (required)
+
+#### Request Body
+
+This endpoint accepts `multipart/form-data` with the following fields:
+
+- `file`: The dataset file (required, must be CSV or Excel)
+- `comments`: Comments describing what changed in this version (optional)
+
+#### Validation
+
+- The file must have the same columns as the original dataset
+- File size must be under 10MB
+- File must be in CSV or Excel format
+
+#### Response
+
+**Success (200 OK)**
+
+```json
+{
+  "message": "New version created successfully",
+  "version": {
+    "id": "64f7e8a12b3c4d5e6f7a8b9e",
+    "versionNumber": 3,
+    "status": "draft",
+    "comments": "Updated with latest data",
+    "createdAt": "2023-09-10T09:15:22Z"
+  },
+  "datasetId": "64f7e8a12b3c4d5e6f7a8b9c"
+}
+```
+
+**Error (400 Bad Request)**
+
+```json
+{
+  "message": "The new file must have the same columns as the original dataset."
+}
+```
+
 ### Download Dataset
 
 ```

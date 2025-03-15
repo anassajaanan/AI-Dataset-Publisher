@@ -120,6 +120,12 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Supports language selection (English, Arabic, or bilingual)
   - Returns structured metadata options for user selection
 
+- ✅ `/api/datasets/[id]/versions`
+  - Retrieves all versions of a specific dataset
+  - Creates new versions of a dataset with file upload
+  - Validates that new versions maintain the same column structure
+  - Supports version comments and status tracking
+
 ## Pages Implemented
 
 - ✅ **Home Page** (`/`)
@@ -218,6 +224,13 @@ This document tracks the implementation progress of the Dataset Publishing Platf
   - Improved the metadata editor interface
   - Enhanced the dataset detail page
   - Added better error handling and user feedback
+
+- ✅ **Dataset Versioning Enhancements**
+  - Added dedicated API endpoint for creating and retrieving dataset versions
+  - Implemented UI for creating new versions of datasets
+  - Enhanced file storage service to support versioned files
+  - Added version-specific directories for file storage
+  - Implemented validation to ensure column consistency across versions
 
 ## Next Steps
 
