@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { Toaster } from "@/components/ui/sonner";
+import { NavBar } from "@/components/ui/tubelight-navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,44 +25,33 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Define navigation items for the NavBar with string icon names
+  const navItems = [
+    { name: 'Home', url: '/', icon: 'Home' },
+    { name: 'Features', url: '/#features', icon: 'CheckCircle' },
+    { name: 'How It Works', url: '/#how-it-works', icon: 'BarChart' },
+    { name: 'Upload', url: '/upload', icon: 'Upload' },
+    { name: 'Dashboard', url: '/dashboard', icon: 'LayoutDashboard' },
+    { name: 'Supervisor', url: '/supervisor/dashboard', icon: 'Shield' }
+  ];
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <header className="border-b">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <header className="h-16 sm:h-20 flex items-center justify-between border-b">
+          <div className="container mx-auto px-4 flex items-center justify-between">
             <Link href="/" className="text-xl font-bold">
               Dataset Publishing Platform
             </Link>
-            <nav>
-              <ul className="flex space-x-6">
-                <li>
-                  <Link href="/" className="hover:text-primary transition-colors">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/upload" className="hover:text-primary transition-colors">
-                    Upload
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/dashboard" className="hover:text-primary transition-colors">
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/supervisor/dashboard" className="hover:text-primary transition-colors">
-                    Supervisor
-                  </Link>
-                </li>
-              </ul>
-            </nav>
           </div>
         </header>
         
-        <main className="flex-1">
+        {/* TubeLight NavBar */}
+        <NavBar items={navItems} className="sm:top-4" />
+        
+        <main className="flex-1 pt-8">
           {children}
         </main>
         
