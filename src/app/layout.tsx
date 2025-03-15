@@ -32,7 +32,7 @@ export default function RootLayout({
         {/* TubeLight NavBar */}
         <MainNavigation />
         
-        <main className="flex-1 pt-16 sm:pt-20">
+        <main className="flex-1 pt-4">
           {children}
         </main>
         

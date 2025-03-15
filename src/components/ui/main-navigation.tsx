@@ -12,5 +12,5 @@ export function MainNavigation() {
     { name: 'Supervisor', url: '/supervisor/dashboard', icon: Shield }
   ];
 
-  return <NavBar items={navItems} className="sm:top-6" />;
+  return <NavBar items={navItems} />;
 } 
