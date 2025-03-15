@@ -206,13 +206,18 @@ export const DatasetTable: React.FC = () => {
       header: "Status",
       cell: ({ row }) => {
         const versions = row.original.versions;
-        const status = versions[0]?.status || 'draft';
+        const status = versions && versions.length > 0 ? versions[0]?.status || 'draft' : 'draft';
         return (
           <Badge className={getStatusBadgeClass(status)}>
             {getStatusLabel(status)}
           </Badge>
         );
       },
+      filterFn: (row, id, filterValue) => {
+        const versions = row.original.versions;
+        const status = versions && versions.length > 0 ? versions[0]?.status || 'draft' : 'draft';
+        return status === filterValue;
+      }
     },
     {
       accessorKey: "createdAt",
@@ -257,6 +262,16 @@ export const DatasetTable: React.FC = () => {
       rowSelection,
     },
   });
+
+  // Function to filter datasets based on status
+  const filterDatasetsByStatus = (status: string | undefined) => {
+    if (!status) {
+      table.resetColumnFilters();
+      return;
+    }
+    
+    table.getColumn("status")?.setFilterValue(status);
+  };
 
   return (
     <div className="space-y-4">
@@ -346,7 +361,15 @@ export const DatasetTable: React.FC = () => {
           variant="outline" 
           size="sm" 
           className="h-7 text-xs"
-          onClick={() => table.getColumn("status")?.setFilterValue("draft")}
+          onClick={() => filterDatasetsByStatus(undefined)}
+        >
+          All
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-7 text-xs"
+          onClick={() => filterDatasetsByStatus("draft")}
         >
           Draft
         </Button>
@@ -354,7 +377,15 @@ export const DatasetTable: React.FC = () => {
           variant="outline" 
           size="sm" 
           className="h-7 text-xs"
-          onClick={() => table.getColumn("status")?.setFilterValue("pending_review")}
+          onClick={() => filterDatasetsByStatus("submitted")}
+        >
+          Submitted
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-7 text-xs"
+          onClick={() => filterDatasetsByStatus("pending_review")}
         >
           Pending Review
         </Button>
@@ -362,7 +393,7 @@ export const DatasetTable: React.FC = () => {
           variant="outline" 
           size="sm" 
           className="h-7 text-xs"
-          onClick={() => table.getColumn("status")?.setFilterValue("approved")}
+          onClick={() => filterDatasetsByStatus("approved")}
         >
           Approved
         </Button>
@@ -370,7 +401,7 @@ export const DatasetTable: React.FC = () => {
           variant="outline" 
           size="sm" 
           className="h-7 text-xs"
-          onClick={() => table.getColumn("status")?.setFilterValue("published")}
+          onClick={() => filterDatasetsByStatus("published")}
         >
           Published
         </Button>
@@ -378,7 +409,7 @@ export const DatasetTable: React.FC = () => {
           variant="outline" 
           size="sm" 
           className="h-7 text-xs"
-          onClick={() => table.getColumn("status")?.setFilterValue("rejected")}
+          onClick={() => filterDatasetsByStatus("rejected")}
         >
           Rejected
         </Button>
