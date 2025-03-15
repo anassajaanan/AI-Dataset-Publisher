@@ -18,6 +18,7 @@ import { ChatBubble } from '@/components/ui/chat';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { LanguageSelector } from './LanguageSelector';
+import { MetadataCardCarousel } from './MetadataCardCarousel';
 
 interface MetadataEditorProps {
   datasetId: string;
@@ -378,8 +379,7 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
       case 'generated':
         return (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Select a Metadata Option</h3>
+            <div className="flex justify-between items-center mb-4">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -389,41 +389,11 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {metadataOptions.map((option, index) => (
-                <Card 
-                  key={index}
-                  className={`cursor-pointer transition-all hover:shadow-md ${
-                    selectedOptionIndex === index ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => selectOption(index)}
-                >
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{option.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
-                      {option.description}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {option.tags.slice(0, 3).map((tag, tagIndex) => (
-                        <Badge key={tagIndex} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {option.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{option.tags.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                    <p className="text-xs text-muted-foreground">Category: {option.category}</p>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
+            <MetadataCardCarousel 
+              options={metadataOptions}
+              onSelect={selectOption}
+              selectedIndex={selectedOptionIndex}
+            />
           </div>
         );
         
