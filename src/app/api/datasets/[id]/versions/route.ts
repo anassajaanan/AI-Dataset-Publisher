@@ -3,11 +3,22 @@ import connectToDatabase from '@/lib/db/mongodb';
 import { Dataset, DatasetVersion } from '@/lib/db/models';
 import { processFile } from '@/lib/services/fileProcessingService';
 import { saveFile } from '@/lib/services/storage/fileStorageService';
+import mongoose from 'mongoose';
 
 interface RouteContext {
   params: {
     id: string;
   };
+}
+
+// Define interfaces for MongoDB document types
+interface VersionDocument {
+  _id: mongoose.Types.ObjectId;
+  versionNumber: number;
+  status: string;
+  comments?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export async function GET(
@@ -34,7 +45,7 @@ export async function GET(
     
     // Find all versions for this dataset
     const versions = await DatasetVersion.find({ datasetId: dataset._id })
-      .sort({ versionNumber: -1 });
+      .sort({ versionNumber: -1 }) as VersionDocument[];
     
     // Return versions
     return NextResponse.json({
@@ -142,7 +153,7 @@ export async function POST(
       comments: comments || `Version ${newVersionNumber}`
     };
     
-    const newVersion = await DatasetVersion.create(versionData);
+    const newVersion = await DatasetVersion.create(versionData) as VersionDocument;
     
     // Update dataset with new file stats if needed
     if (fileStats.rowCount !== dataset.rowCount || fileStats.fileSize !== dataset.fileSize) {

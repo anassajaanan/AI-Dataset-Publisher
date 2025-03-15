@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { AlertCircle, Upload, FileUp, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 interface NewVersionFormProps {
   datasetId: string;
@@ -23,7 +23,6 @@ export default function NewVersionForm({ datasetId, onSuccess, onCancel }: NewVe
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
@@ -61,10 +60,7 @@ export default function NewVersionForm({ datasetId, onSuccess, onCancel }: NewVe
       
       const data = await response.json();
       
-      toast({
-        title: 'Success',
-        description: `New version ${data.version.versionNumber} created successfully`,
-      });
+      toast.success(`New version ${data.version.versionNumber} created successfully`);
       
       // Refresh the page or call the success callback
       if (onSuccess) {
