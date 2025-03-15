@@ -114,7 +114,22 @@ export const DatasetTable: React.FC = () => {
       // Add status parameter to the API call if provided
       const url = status ? `/api/datasets?status=${status}` : '/api/datasets';
       const response = await axios.get(url);
+      
+      // More detailed debugging
       console.log('Fetched datasets:', response.data.datasets);
+      
+      // Check each dataset's versions
+      response.data.datasets.forEach((dataset: Dataset, index: number) => {
+        console.log(`Dataset ${index + 1} - ${dataset.filename}:`);
+        console.log('  versions:', dataset.versions);
+        if (dataset.versions && dataset.versions.length > 0) {
+          console.log('  first version:', dataset.versions[0]);
+          console.log('  status:', dataset.versions[0].status);
+        } else {
+          console.log('  No versions found');
+        }
+      });
+      
       setDatasets(response.data.datasets);
     } catch (error) {
       console.error('Error fetching datasets:', error);
@@ -216,8 +231,25 @@ export const DatasetTable: React.FC = () => {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const versions = row.original.versions;
-        const status = versions && versions.length > 0 ? versions[0]?.status : 'draft';
+        const dataset = row.original;
+        console.log('Rendering status for dataset:', dataset.filename);
+        console.log('  versions:', dataset.versions);
+        
+        // Extract status from versions
+        let status = 'draft';
+        if (dataset.versions && dataset.versions.length > 0) {
+          const version = dataset.versions[0];
+          console.log('  first version:', version);
+          if (version.status) {
+            status = version.status;
+            console.log('  status found:', status);
+          } else {
+            console.log('  no status in version, using default');
+          }
+        } else {
+          console.log('  no versions found, using default status');
+        }
+        
         return (
           <Badge className={getStatusBadgeClass(status)}>
             {getStatusLabel(status)}
@@ -235,10 +267,25 @@ export const DatasetTable: React.FC = () => {
       header: "Actions",
       cell: ({ row }) => {
         const dataset = row.original;
+        console.log('Rendering actions for dataset:', dataset.filename);
+        console.log('  versions:', dataset.versions);
+        
         const datasetId = (dataset._id || dataset.id || '').toString();
-        const versions = dataset.versions;
-        const latestVersion = versions && versions.length > 0 ? versions[0] : undefined;
-        const status = latestVersion?.status || 'draft';
+        
+        // Extract status from versions
+        let status = 'draft';
+        if (dataset.versions && dataset.versions.length > 0) {
+          const version = dataset.versions[0];
+          console.log('  first version:', version);
+          if (version.status) {
+            status = version.status;
+            console.log('  status found:', status);
+          } else {
+            console.log('  no status in version, using default');
+          }
+        } else {
+          console.log('  no versions found, using default status');
+        }
         
         return (
           <DatasetActions 
